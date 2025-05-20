@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧农场扫码系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        .scan-area {
+            border: 2px dashed #4CAF50;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px auto;
+            max-width: 500px;
+            transition: all 0.3s ease;
+        }
+
+        .scan-area.drag-over {
+            background-color: #e8f5e9;
+            border-color: #2E7D32;
+            transform: scale(1.02);
+        }
+
+        .scan-preview {
+            width: 100%;
+            max-width: 500px;
+            margin: 20px auto;
+            border-radius: 8px;
+            display: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .custom-card {
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            overflow: hidden;
+            background: white;
+        }
+
+        .custom-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #388E3C;
+        }
+
+        .btn-secondary {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #1976D2;
+        }
+
+        .btn-warning {
+            background-color: #FF9800;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #F57C00;
+        }
+
+        .btn-danger {
+            background-color: #F44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #D32F2F;
+        }
+
+        .btn-icon {
+            margin-right: 8px;
+        }
+
+        .floating-action-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #4CAF50;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 100;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .floating-action-btn:hover {
+            transform: scale(1.1);
+            background-color: #388E3C;
+        }
+
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.5s;
+        }
+
+        .fade-enter, .fade-leave-to {
+            opacity: 0;
+        }
+
+        .progress-bar {
+            height: 10px;
+            border-radius: 5px;
+            background-color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.5s ease;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            white-space: nowrap;
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        #drop-zone {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+        }
+
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.active {
+            border-bottom: 2px solid #4CAF50;
+            color: #4CAF50;
+            font-weight: 500;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="app">
+        <!-- 导航栏 -->
+        <nav class="bg-white shadow-md p-4 sticky top-0 z-50 w-full">
+            <div class="container mx-auto flex flex-wrap justify-between items-center">
+                <div class="flex items-center">
+                    <i class="fas fa-leaf text-green-600 mr-2 text-2xl"></i>
+                    <span class="text-xl font-bold text-green-700">智慧农场扫码系统</span>
+                </div>
+                <div class="flex space-x-4 text-sm md:text-base">
+                    <a href="index.html" class="text-green-600 hover:text-green-800 px-2 py-1 flex items-center">
+                        <i class="fas fa-home mr-1"></i> 首页
+                    </a>
+                    <a href="#" class="text-green-600 hover:text-green-800 px-2 py-1 flex items-center" @click.prevent="showHelp = true">
+                        <i class="fas fa-question-circle mr-1"></i> 帮助
+                    </a>
+                    <a href="#" class="text-green-600 hover:text-green-800 px-2 py-1 flex items-center" @click.prevent="loadProductData">
+                        <i class="fas fa-sync-alt mr-1"></i> 刷新
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container mx-auto px-4 py-8">
+            <!-- 状态提示 -->
+            <div v-if="uploadStatus.loading" class="bg-blue-100 border-blue-400 text-blue-700 p-4 rounded-lg mb-4">
+                <div class="flex items-center">
+                    <svg class="animate-spin h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>{{ uploadStatus.message }}</span>
+                </div>
+            </div>
+
+            <div v-if="uploadStatus.success" class="bg-green-100 border-green-400 text-green-700 p-4 rounded-lg mb-4">
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle mr-3"></i>
+                    <span>{{ uploadStatus.message }}</span>
+                </div>
+            </div>
+
+            <div v-if="uploadStatus.error" class="bg-red-100 border-red-400 text-red-700 p-4 rounded-lg mb-4">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle mr-3"></i>
+                    <span>{{ uploadStatus.message }}</span>
+                </div>
+            </div>
+
+            <!-- 主选项卡 -->
+            <div class="tabs">
+                <div class="tab" :class="{ active: activeTab === 'scan' }" @click="activeTab = 'scan'">
+                    <i class="fas fa-qrcode mr-2"></i> 扫码工具
+                </div>
+                <div class="tab" :class="{ active: activeTab === 'products' }" @click="activeTab = 'products'">
+                    <i class="fas fa-seedling mr-2"></i> 产品信息
+                </div>
+                <div class="tab" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
+                    <i class="fas fa-history mr-2"></i> 扫码历史
+                </div>
+            </div>
+
+            <!-- 扫码工具选项卡 -->
+            <div class="tab-content" :class="{ active: activeTab === 'scan' }">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- 图片扫码区域 -->
+                    <div class="custom-card p-6 mb-8">
+                        <div class="scan-area bg-gray-50"
+                             :class="{ 'drag-over': isDragging }"
+                             id="drop-zone"
+                             @dragover.prevent="dragOver"
+                             @dragleave.prevent="dragLeave"
+                             @drop.prevent="handleImageDrop"> <!-- 修改此处，调用 handleImageDrop 方法 -->
+                            <h4 class="text-lg font-semibold text-gray-700 mb-3">图片扫码</h4>
+                            <i class="fas fa-file-image text-5xl text-green-500 mb-4" :class="{'pulse-animation': isDragging}"></i>
+                            <p class="text-gray-500 mb-4">拖放图片文件到此处，或点击选择</p>
+                            <label class="block cursor-pointer">
+                                <input type="file" @change="handleImageUpload" accept="image/*" class="hidden" id="file-input">
+                                <button class="btn btn-primary w-full" @click="openImageFileInput">
+                                    <i class="fas fa-upload btn-icon"></i> 选择图片文件
+                                </button>
+                            </label>
+                            <div class="mt-4">
+                                <img id="preview" class="scan-preview" alt="扫码预览">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 批量扫码区域 -->
+                    <div class="custom-card p-6 mb-8">
+                        <div class="scan-area bg-gray-50"
+                             :class="{ 'drag-over': isZipDragging }"
+                             @dragover.prevent="zipDragOver"
+                             @dragleave.prevent="zipDragLeave"
+                             @drop.prevent="handleZipDrop">
+                            <h4 class="text-lg font-semibold text-gray-700 mb-3">批量扫码</h4>
+                            <i class="fas fa-file-archive text-5xl text-blue-500 mb-4" :class="{'pulse-animation': isZipDragging}"></i>
+                            <p class="text-gray-500 mb-4">拖放ZIP压缩文件到此处，或点击选择</p>
+                            <label class="block cursor-pointer">
+                                <input type="file" @change="handleZipUpload" accept=".zip" class="hidden" id="zip-file-input">
+                                <button class="btn btn-secondary w-full" @click="openZipFileInput">
+                                    <i class="fas fa-file-archive btn-icon"></i> 选择压缩包文件
+                                </button>
+                            </label>
+                            <div class="mt-4" v-if="batchProgress > 0">
+                                <div class="progress-bar">
+                                    <div class="progress-bar-fill" :style="{width: batchProgress + '%'}"></div>
+                                </div>
+                                <p class="text-sm text-center mt-2">处理进度: {{ Math.round(batchProgress) }}%</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 摄像头扫码区域 -->
+                    <div class="custom-card p-6 mb-8">
+                        <div class="scan-area bg-gray-50">
+                            <h4 class="text-lg font-semibold text-gray-700 mb-3">摄像头扫码</h4>
+                            <i class="fas fa-camera text-5xl text-yellow-500 mb-4"></i>
+                            <p class="text-gray-500 mb-4">使用设备摄像头实时扫描二维码</p>
+                            <button class="btn mb-2" :class="cameraActive ? 'btn-danger' : 'btn-warning'" @click="toggleCamera">
+                                <i class="fas" :class="cameraActive ? 'fa-stop-circle' : 'fa-video'" class="btn-icon"></i>
+                                {{ cameraActive ? '停止摄像头' : '打开摄像头' }}
+                            </button>
+                            <div class="mt-4">
+                                <video id="camera-view" width="100%" height="200" autoplay playsinline style="border-radius: 8px; display: none;"></video>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 最近扫码结果 -->
+                <div class="custom-card p-6 mb-8">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-lg font-semibold text-gray-700">最近扫码结果</h4>
+                        <div class="flex space-x-2">
+                            <button class="btn btn-secondary text-sm" @click="copyAllResults" v-if="scanResults.length > 0">
+                                <i class="fas fa-copy btn-icon"></i> 复制全部
+                            </button>
+                            <button class="btn btn-danger text-sm" @click="clearResults" v-if="scanResults.length > 0">
+                                <i class="fas fa-trash btn-icon"></i> 清除
+                            </button>
+                        </div>
+                    </div>
+                    <div v-if="scanResults.length === 0" class="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                        <i class="fas fa-list-alt text-5xl mb-3 text-gray-300"></i>
+                        <p>暂无扫码结果</p>
+                    </div>
+                    <div v-else class="space-y-4">
+                        <div v-for="(result, index) in scanResults" :key="'current-' + index" class="bg-white border border-gray-200 p-4 rounded-lg hover:shadow-md transition-shadow">
+                            <div class="flex justify-between items-start">
+                                <div class="text-gray-700">
+                                    <strong>二维码 {{ index + 1 }}:</strong>
+                                    <span class="break-all">{{ result }}</span>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="text-blue-500 hover:text-blue-700" @click="copyResult(result)" title="复制">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="text-green-500 hover:text-green-700" @click="redirectToProductPage(result)" title="查看详情">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-2 text-sm text-gray-500">
+                                <span v-if="isValidUrl(result)" class="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                                    <i class="fas fa-link mr-1"></i> 有效URL
+                                </span>
+                                <span v-else class="inline-flex items-center bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs">
+                                    <i class="fas fa-font mr-1"></i> 文本内容
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 产品信息选项卡 -->
+            <div class="tab-content" :class="{ active: activeTab === 'products' }">
+                <div class="custom-card p-6 mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-lg font-semibold text-gray-700">产品信息列表</h4>
+                        <div>
+                            <select v-model="selectedWeek" class="py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                <option v-for="week in availableWeeks" :value="week">{{ week }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div v-if="loadingProducts" class="py-8 text-center">
+                        <div class="animate-spin mx-auto h-8 w-8 border-4 border-green-500 rounded-full border-t-transparent"></div>
+                        <p class="mt-2 text-gray-600">加载产品数据中...</p>
+                    </div>
+
+                    <div v-else-if="!selectedWeekProducts || Object.keys(selectedWeekProducts).length === 0" class="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                        <i class="fas fa-box-open text-5xl mb-3 text-gray-300"></i>
+                        <p>当前周没有产品数据</p>
+                    </div>
+
+                    <div v-else class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">产品ID</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">产品名称</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr v-for="(product, productId) in selectedWeekProducts" :key="productId" class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ product.productId }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ product.productName || '未命名' }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatDate(product.createdAt) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <button class="text-blue-600 hover:text-blue-900 mr-3" @click="viewProductDetails(product)">
+                                            <i class="fas fa-eye"></i> 查看
+                                        </button>
+                                        <button class="text-green-600 hover:text-green-900" @click="generateQRCode(product.productDataUrl)">
+                                            <i class="fas fa-qrcode"></i> 生成二维码
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 历史记录选项卡 -->
+            <div class="tab-content" :class="{ active: activeTab === 'history' }">
+                <div class="custom-card p-6 mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-lg font-semibold text-gray-700">历史扫码记录</h4>
+                        <div class="flex space-x-2">
+                            <button class="btn btn-secondary text-sm" @click="historyResults = JSON.parse(localStorage.getItem('scanHistory') || '[]')">
+                                <i class="fas fa-sync-alt btn-icon"></i> 刷新
+                            </button>
+                            <button class="btn btn-danger text-sm" @click="clearHistory" v-if="historyResults.length > 0">
+                                <i class="fas fa-trash btn-icon"></i> 清除历史
+                            </button>
+                        </div>
+                    </div>
+
+                    <div v-if="historyResults.length === 0" class="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                        <i class="fas fa-history text-5xl mb-3 text-gray-300"></i>
+                        <p>暂无历史记录</p>
+                    </div>
+
+                    <div v-else class="space-y-4">
+                        <div v-for="(item, index) in historyResults" :key="'history-' + index" class="bg-white border border-gray-200 p-4 rounded-lg hover:shadow-md transition-shadow">
+                            <div class="text-gray-700">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <strong class="text-gray-600">{{ item.timestamp }}:</strong>
+                                        <span class="break-all">{{ item.result }}</span>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="text-blue-500 hover:text-blue-700" @click="copyResult(item.result)" title="复制">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                        <button class="text-green-500 hover:text-green-700" @click="redirectToProductPage(item.result)" title="查看详情">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </button>
+                                        <button class="text-red-500 hover:text-red-700" @click="removeHistoryItem(index)" title="删除">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mt-2 text-sm text-gray-500">
+                                    <span v-if="isValidUrl(item.result)" class="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                                        <i class="fas fa-link mr-1"></i> 有效URL
+                                    </span>
+                                    <span v-else class="inline-flex items-center bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs">
+                                        <i class="fas fa-font mr-1"></i> 文本内容
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 产品详情模态框 -->
+        <div v-if="productDetailModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-screen overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-center border-b pb-3 mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">{{ selectedProduct.productName || '产品详情' }}</h3>
+                        <button @click="productDetailModal = false" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <div class="mb-4">
+                                <h4 class="text-lg font-semibold mb-2">基本信息</h4>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div class="text-sm text-gray-500">产品名称:</div>
+                                        <div class="text-sm font-medium">{{ selectedProduct.productName || '未设置' }}</div>
+
+                                        <div class="text-sm text-gray-500">批次号:</div>
+                                        <div class="text-sm font-medium">{{ getProductDetail('batchNumber') }}</div>
+
+                                        <div class="text-sm text-gray-500">种植日期:</div>
+                                        <div class="text-sm font-medium">{{ formatDetailDate(getProductDetail('plantingDate')) }}</div>
+
+                                        <div class="text-sm text-gray-500">收获日期:</div>
+                                        <div class="text-sm font-medium">{{ formatDetailDate(getProductDetail('harvestDate')) }}</div>
+
+                                        <div class="text-sm text-gray-500">联系方式:</div>
+                                        <div class="text-sm font-medium">{{ getProductDetail('contact') }}</div>
+
+                                        <div class="text-sm text-gray-500">创建时间:</div>
+                                        <div class="text-sm font-medium">{{ formatDate(selectedProduct.createdAt) }}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <h4 class="text-lg font-semibold mb-2">地理位置</h4>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm" v-if="getProductDetail('exactLocation')">
+                                        {{ getLocationAddress() }}
+                                    </p>
+                                    <p class="text-sm text-gray-500" v-else>未设置地理位置</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="mb-4">
+                                <h4 class="text-lg font-semibold mb-2">营养成分</h4>
+                                <div class="bg-gray-50 p-4 rounded-lg" v-if="getNutritionValues().length > 0">
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div class="text-sm text-gray-500">蛋白质:</div>
+                                        <div class="text-sm font-medium">{{ getNutritionValues()[0] || 0 }}g</div>
+
+                                        <div class="text-sm text-gray-500">脂肪:</div>
+                                        <div class="text-sm font-medium">{{ getNutritionValues()[1] || 0 }}g</div>
+
+                                        <div class="text-sm text-gray-500">碳水化合物:</div>
+                                        <div class="text-sm font-medium">{{ getNutritionValues()[2] || 0 }}g</div>
+
+                                        <div class="text-sm text-gray-500">膳食纤维:</div>
+                                        <div class="text-sm font-medium">{{ getNutritionValues()[3] || 0 }}g</div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg" v-else>
+                                    <p class="text-sm text-gray-500">未提供营养成分数据</p>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <h4 class="text-lg font-semibold mb-2">农业生产技术</h4>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm">{{ getProductDetail('farmingTech') || '未提供农业技术信息' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                activeTab: 'scan',
+                cameraActive: false,
+                isDragging: false,
+                isZipDragging: false,
+                batchProgress: 0,
+                uploadStatus: {
+                    loading: false,
+                    success: false,
+                    error: false,
+                    message: ''
+                },
+                scanResults: [],
+                scanHistory: [],
+                historyResults: [],
+                products: {},
+                availableWeeks: [],
+                selectedWeek: '',
+                productDetailModal: false,
+                selectedProduct: null,
+                loadingProducts: false
+            },
+            computed: {
+                selectedWeekProducts() {
+                    return this.products[this.selectedWeek] || null;
+                }
+            },
+            mounted() {
+                this.loadProductData();
+                this.loadScanHistory();
+            },
+            methods: {
+
+                handleImageDrop(event) {
+                    this.isDragging = false;
+                    const files = event.dataTransfer.files;
+                    if (files.length > 0 && files[0].type.match('image.*')) {
+                        this.handleImageUpload({ target: { files } });
+                    }
+                },
+                initCamera() {
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        this.addScanStatus('error', '您的浏览器不支持摄像头功能');
+                        return;
+                    }
+
+                    const videoElement = document.getElementById('camera-view');
+                    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                        .then(stream => {
+                            videoElement.srcObject = stream;
+                            videoElement.play();
+                            this.cameraActive = true;
+                            setInterval(() => {
+                                if (this.cameraActive && videoElement.readyState === HTMLVideoElement.HAVE_ENOUGH_DATA) {
+                                    this.processCameraFrame(videoElement);
+                                }
+                            }, 500);
+                        })
+                        .catch(err => {
+                            console.error('无法访问摄像头:', err);
+                            this.addScanStatus('error', '无法访问摄像头: ' + err.message);
+                        });
+                },
+                processCameraFrame(videoElement) {
+                    if (!videoElement || !videoElement.videoWidth) return;
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = videoElement.videoWidth;
+                    canvas.height = videoElement.videoHeight;
+                    canvas.getContext('2d').drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+                    const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                    if (code) {
+                        this.addScanResult(code.data);
+                        this.copyResult(code.data);
+                    }
+                },
+                toggleCamera() {
+                    this.cameraActive = !this.cameraActive;
+                    const videoElement = document.getElementById('camera-view');
+                    if (!this.cameraActive) {
+                        videoElement.style.display = 'none';
+                        if (videoElement.srcObject) {
+                            videoElement.srcObject.getTracks().forEach(track => track.stop());
+                        }
+                    } else {
+                        this.initCamera();
+                    }
+                },
+                dragOver(e) {
+                    e.preventDefault();
+                    this.isDragging = true;
+                },
+                dragLeave() {
+                    this.isDragging = false;
+                },
+                handleDrop(e) {
+                    this.isDragging = false;
+                    if (e.dataTransfer.files.length) {
+                        this.handleImageUpload(e);
+                    }
+                },
+                zipDragOver(e) {
+                    e.preventDefault();
+                    this.isZipDragging = true;
+                },
+                zipDragLeave() {
+                    this.isZipDragging = false;
+                },
+                handleZipDrop(e) {
+                    this.isZipDragging = false;
+                    if (e.dataTransfer.files.length) {
+                        this.handleZipUpload(e);
+                    }
+                },
+                handleImageUpload(e) {
+                    const file = e.target.files[0] || (e.dataTransfer && e.dataTransfer.files[0]);
+                    if (file && file.type.startsWith('image/')) {
+                        this.addScanStatus('loading', '正在处理图片...');
+
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.addScanStatus('loading', '正在扫描二维码...');
+
+                            const img = new Image();
+                            img.onload = () => {
+                                const canvas = document.createElement('canvas');
+                                canvas.width = img.width;
+                                canvas.height = img.height;
+                                canvas.getContext('2d').drawImage(img, 0, 0);
+
+                                const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                                const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                                if (code) {
+                                    this.addScanResult(code.data);
+                                    this.addScanStatus('success', '扫码成功!');
+                                } else {
+                                    this.addScanStatus('error', '无法识别二维码');
+                                }
+
+                                document.getElementById('preview').src = e.target.result;
+                                document.getElementById('preview').style.display = 'block';
+                            };
+                            img.onerror = () => {
+                                this.addScanStatus('error', '无法加载图片');
+                            };
+                            img.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        this.addScanStatus('error', '请选择有效图片文件');
+                    }
+                },
+                handleZipUpload(e) {
+                    const file = e.target.files[0];
+                    if (file && (file.type === 'application/zip' || file.name.endsWith('.zip'))) {
+                        this.uploadStatus = {
+                            loading: true,
+                            success: false,
+                            error: false,
+                            message: '正在处理压缩包...'
+                        };
+                        this.batchProgress = 0;
+
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const zipData = e.target.result;
+                            JSZip.loadAsync(zipData).then((zip) => {
+                                const entries = Object.values(zip.files);
+                                const imageEntries = entries.filter(entry =>
+                                    entry.name.match(/\.(jpg|jpeg|png|gif|bmp)$/i) && !entry.dir
+                                );
+                                const totalImages = imageEntries.length;
+                                let processedImages = 0;
+                                const results = [];
+
+                                if (totalImages === 0) {
+                                    this.uploadStatus = {
+                                        loading: false,
+                                        success: false,
+                                        error: true,
+                                        message: '压缩包中未找到图片文件'
+                                    };
+                                    return;
+                                }
+
+                                imageEntries.forEach((entry) => {
+                                    entry.async('blob').then((blob) => {
+                                        const reader = new FileReader();
+                                        reader.onload = (e) => {
+                                            const img = new Image();
+                                            img.onload = () => {
+                                                const canvas = document.createElement('canvas');
+                                                canvas.width = img.width;
+                                                canvas.height = img.height;
+                                                const ctx = canvas.getContext('2d');
+                                                ctx.drawImage(img, 0, 0);
+
+                                                try {
+                                                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                                                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                                                    if (code) {
+                                                        results.push({
+                                                            fileName: entry.name,
+                                                            content: code.data
+                                                        });
+                                                    }
+
+                                                    processedImages++;
+                                                    this.batchProgress = (processedImages / totalImages) * 100;
+
+                                                    if (processedImages === totalImages) {
+                                                        this.uploadStatus = {
+                                                            loading: false,
+                                                            success: true,
+                                                            error: false,
+                                                            message: `处理完成，共扫描 ${results.length} 个二维码`
+                                                        };
+
+                                                        // 添加扫描结果到历史记录
+                                                        results.forEach(result => {
+                                                            this.addScanResult(result.content);
+                                                        });
+                                                    }
+                                                } catch (error) {
+                                                    console.error('处理图片时出错:', error);
+                                                    processedImages++;
+                                                    this.batchProgress = (processedImages / totalImages) * 100;
+
+                                                    if (processedImages === totalImages) {
+                                                        this.uploadStatus = {
+                                                            loading: false,
+                                                            success: results.length > 0,
+                                                            error: results.length === 0,
+                                                            message: results.length > 0
+                                                                ? `部分处理完成，共扫描 ${results.length} 个二维码`
+                                                                : '处理过程中出现错误，未扫描到任何二维码'
+                                                        };
+
+                                                        results.forEach(result => {
+                                                            this.addScanResult(result.content);
+                                                        });
+                                                    }
+                                                }
+                                            };
+                                            img.onerror = () => {
+                                                console.error('加载图片失败:', entry.name);
+                                                processedImages++;
+                                                this.batchProgress = (processedImages / totalImages) * 100;
+
+                                                if (processedImages === totalImages) {
+                                                    this.uploadStatus = {
+                                                        loading: false,
+                                                        success: results.length > 0,
+                                                        error: results.length === 0,
+                                                        message: results.length > 0
+                                                            ? `部分处理完成，共扫描 ${results.length} 个二维码`
+                                                            : '处理过程中出现错误，未扫描到任何二维码'
+                                                    };
+
+                                                    results.forEach(result => {
+                                                        this.addScanResult(result.content);
+                                                    });
+                                                }
+                                            };
+                                            img.src = e.target.result;
+                                        };
+                                        reader.readAsDataURL(blob);
+                                    });
+                                });
+                            }).catch((error) => {
+                                console.error('解压压缩包时出错:', error);
+                                this.uploadStatus = {
+                                    loading: false,
+                                    success: false,
+                                    error: true,
+                                    message: '解压压缩包时出错: ' + error.message
+                                };
+                            });
+                        };
+                        reader.onerror = () => {
+                            this.uploadStatus = {
+                                loading: false,
+                                success: false,
+                                error: true,
+                                message: '读取文件时出错'
+                            };
+                        };
+                        reader.readAsArrayBuffer(file);
+                    } else {
+                        this.uploadStatus = {
+                            loading: false,
+                            success: false,
+                            error: true,
+                            message: '请选择有效的ZIP压缩文件'
+                        };
+                    }
+                },
+                addScanStatus(status, message) {
+                    this.uploadStatus[status] = true;
+                    this.uploadStatus.message = message;
+
+                    // 清除之前的定时器
+                    clearTimeout(this.uploadStatus.timer);
+
+                    // 2秒后重置状态
+                    this.uploadStatus.timer = setTimeout(() => {
+                        this.uploadStatus.loading = false;
+                        this.uploadStatus.success = false;
+                        this.uploadStatus.error = false;
+                    }, 2000);
+                },
+                addScanResult(result) {
+                    if (this.isValidUrl(result)) {
+                        this.scanResults.unshift(result);
+                        this.saveScanHistory(result);
+                    } else {
+                        this.scanResults.unshift(result);
+                    }
+                },
+                saveScanHistory(result) {
+                    const timestamp = new Date().toLocaleString();
+                    this.scanHistory.unshift({ result, timestamp });
+                    this.historyResults.unshift({ result, timestamp });
+                    localStorage.setItem('scanHistory', JSON.stringify(this.scanHistory));
+                },
+                loadScanHistory() {
+                    this.scanHistory = JSON.parse(localStorage.getItem('scanHistory') || '[]');
+                    this.historyResults = [...this.scanHistory];
+                },
+                clearResults() {
+                    this.scanResults = [];
+                },
+                clearHistory() {
+                    if (confirm('确定要清除所有历史记录吗？')) {
+                        localStorage.removeItem('scanHistory');
+                        this.scanHistory = [];
+                        this.historyResults = [];
+                    }
+                },
+                copyResult(result) {
+                    navigator.clipboard.writeText(result)
+                        .then(() => {
+                            this.addScanStatus('success', '已复制到剪贴板');
+                        })
+                        .catch(err => {
+                            console.error('复制失败:', err);
+                        });
+                },
+                copyAllResults() {
+                    if (this.scanResults.length === 0) return;
+
+                    navigator.clipboard.writeText(this.scanResults.join('\n'))
+                        .then(() => {
+                            this.addScanStatus('success', '已复制所有结果到剪贴板');
+                        })
+                        .catch(err => {
+                            console.error('复制失败:', err);
+                        });
+                },
+                redirectToProductPage(url) {
+                    if (this.isValidUrl(url)) {
+                        window.open(url);
+                    }
+                },
+                isValidUrl(str) {
+                    try {
+                        const url = new URL(str);
+                        return url.protocol === 'http:' || url.protocol === 'https:';
+                    } catch (err) {
+                        return false;
+                    }
+                },
+                formatDate(dateString) {
+                    if (!dateString) return '';
+                    const date = new Date(dateString);
+                    return date.toLocaleDateString('zh-CN', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                },
+                generateQRCode(url) {
+                    // 这里可以实现生成二维码的逻辑
+                    alert('二维码生成功能将在此实现');
+                },
+                loadProductData() {
+                    this.loadingProducts = true;
+
+                    // 从 qrcodes.json 读取数据
+                    fetch('qrcodes.json')
+                        .then(response => response.json())
+                        .then(data => {
+                            this.products = data;
+                            this.availableWeeks = Object.keys(data).sort().reverse();
+                            this.selectedWeek = this.availableWeeks.length > 0 ? this.availableWeeks[0] : '';
+                        })
+                        .catch(error => {
+                            console.error('加载产品数据失败:', error);
+                            this.addScanStatus('error', '加载产品数据失败');
+                        })
+                        .finally(() => {
+                            this.loadingProducts = false;
+                        });
+                },
+                viewProductDetails(product) {
+                    this.selectedProduct = product;
+                    this.productDetailModal = true;
+                },
+                getProductDetail(key) {
+                    return this.selectedProduct ? this.selectedProduct[key] : null;
+                },
+                getNutritionValues() {
+                    if (this.selectedProduct && this.selectedProduct.nutrition) {
+                        return [
+                            this.selectedProduct.nutrition.protein,
+                            this.selectedProduct.nutrition.fat,
+                            this.selectedProduct.nutrition.carbohydrates,
+                            this.selectedProduct.nutrition.fiber
+                        ];
+                    }
+                    return [];
+                },
+                formatDetailDate(dateString) {
+                    const date = new Date(dateString);
+                    return date.toLocaleDateString('zh-CN');
+                },
+                getLocationAddress() {
+                    if (this.selectedProduct && this.selectedProduct.address) {
+                        return this.selectedProduct.address;
+                    }
+                    return '未提供地理位置信息';
+                },
+                removeHistoryItem(index) {
+                    this.historyResults.splice(index, 1);
+                    localStorage.setItem('scanHistory', JSON.stringify(this.historyResults));
+                },
+                //添加新的方法用于触发图片文件输入框的点击事件
+                openImageFileInput() {
+                    document.getElementById('file-input').click();
+                },
+                // 添加新的方法用于触发压缩包文件输入框的点击事件
+                openZipFileInput() {
+                    document.getElementById('zip-file-input').click();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
