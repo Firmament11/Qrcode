@@ -1,0 +1,2077 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小绿 - 智慧农场助手</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="智慧农场AI助手，提供专业的农业咨询和指导服务">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="小绿助手">
+    
+    <!-- PWA Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/logo.png">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://webapi.amap.com/loader.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #e0f2e9 0%, #c8e6c9 100%) !important;
+        }
+
+        .gradient-bg .text-white, .gradient-bg .text-white\/70 {
+            color: #222 !important;
+        }
+
+        .gradient-bg .glass-effect {
+            background: rgba(255,255,255,0.7) !important;
+            border: 1px solid rgba(0,0,0,0.08) !important;
+        }
+
+        .bg-pattern {
+            background-color: #f0f8f0;
+            background-image: linear-gradient(rgba(144, 238, 144, 0.1) 1px, transparent 1px),
+                            linear-gradient(90deg, rgba(144, 238, 144, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .chat-bubble {
+            animation: slideIn 0.4s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        #avatar-container {
+            background: radial-gradient(circle, rgba(34, 197, 94, 0.2) 0%, rgba(240, 248, 240, 0.1) 100%);
+            position: relative;
+        }
+
+        .nav-button {
+            transition: all 0.3s ease;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
+        }
+
+        .modal {
+            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .service-card {
+            transition: all 0.3s ease;
+        }
+
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.3);
+        }
+
+        #map-container {
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .floating-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            animation: slideInRight 0.5s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .voice-wave {
+            width: 4px;
+            height: 20px;
+            background: #22c55e;
+            margin: 0 2px;
+            border-radius: 2px;
+            animation: wave 1s infinite ease-in-out;
+        }
+
+        .voice-wave:nth-child(2) { animation-delay: 0.1s; }
+        .voice-wave:nth-child(3) { animation-delay: 0.2s; }
+        .voice-wave:nth-child(4) { animation-delay: 0.3s; }
+
+        @keyframes wave {
+            0%, 100% { height: 10px; }
+            50% { height: 30px; }
+        }
+
+        .nav-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+            min-width: 200px;
+            z-index: 9999;
+        }
+
+        .nav-dropdown a {
+            display: block;
+            padding: 8px 12px;
+            color: white;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .nav-dropdown a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        .nav-item:hover .nav-dropdown {
+            display: block;
+        }
+
+        .context-menu {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .context-menu a {
+            display: block;
+            padding: 8px 12px;
+            color: white;
+            text-decoration: none;
+        }
+
+        .context-menu a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        .divider {
+            width: 5px;
+            background: #ddd;
+            cursor: ew-resize;
+            position: relative;
+            z-index: 10;
+        }
+
+        .emoji {
+            font-size: 1.5em;
+            margin-right: 5px;
+        }
+
+        .chat-panel {
+            transition: width 0.2s ease;
+        }
+
+        .vertical-layout .main-container {
+            flex-direction: column;
+        }
+
+        .vertical-layout .chat-panel {
+            width: 100%;
+            height: 40%;
+        }
+
+        .compact-layout .chat-panel {
+            width: 100%;
+            position: fixed;
+            bottom: 0;
+            height: 50%;
+            z-index: 10;
+        }
+
+        .compact-layout #avatar-container {
+            height: 100vh;
+        }
+
+        .dark-theme {
+            background: linear-gradient(135deg, #1e3a8a 0%, #4c1d95 100%);
+        }
+
+        .light-theme {
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+        }
+
+        .light-theme .glass-effect {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .light-theme .text-white {
+            color: #1f2937;
+        }
+
+        .light-theme .text-white/70 {
+            color: #4b5563;
+        }
+
+        .light-theme .bg-gradient-to-br {
+            background: linear-gradient(to bottom right, #60a5fa, #a78bfa);
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            .chat-panel {
+                width: 100% !important;
+                height: 40%;
+            }
+            .divider {
+                display: none;
+            }
+            .modal {
+                margin: 1rem;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg overflow-hidden">
+    <!-- 顶部导航栏 -->
+    <nav class="glass-effect border-b border-white/20 px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center">
+                    <span class="text-white font-bold text-lg">🌱</span>
+                </div>
+                <div>
+                    <h1 class="text-white font-semibold text-xl" id="app-title">小绿 - 智慧农场助手</h1>
+                    <p class="text-white/70 text-sm">农业咨询 • 邮件通知 • 天气查询</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="nav-item relative">
+                    <button id="location-btn" class="nav-button glass-effect px-4 py-2 rounded-lg text-white hover:bg-white/20 transition-all duration-200 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span id="location-text">获取位置</span>
+                    </button>
+                    <div class="nav-dropdown">
+                        <a href="#" data-action="current-location">获取当前位置</a>
+                        <a href="#" data-action="search-poi">搜索附近POI</a>
+                        <a href="#" data-action="route-plan">路线规划</a>
+                    </div>
+                </div>
+                <div class="nav-item relative">
+                    <button id="services-btn" class="nav-button bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all duration-200">
+                        服务中心
+                    </button>
+                    <div class="nav-dropdown">
+                        <a href="#" data-service="ai-chat">农业智能咨询</a>
+                        <a href="#" data-service="navigation">地图导航</a>
+                        <a href="#" data-service="email">邮件服务</a>
+                        <a href="#" data-service="weather">天气查询</a>
+                        <a href="#" data-service="settings">用户设置</a>
+                        <a href="#" data-service="system-status">系统状态</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <div class="main-container flex h-[calc(100vh-80px)]">
+        <!-- 左侧：3D数字人展示区 -->
+        <div class="flex-1 relative" id="avatar-container">
+            <canvas id="three-canvas" class="w-full h-full"></canvas>
+            <!-- 数字人状态面板 -->
+            <div class="absolute top-6 left-6 glass-effect rounded-xl p-4 text-white">
+                <div class="flex items-center gap-3">
+                    <div id="status-indicator" class="w-3 h-3 bg-green-400 rounded-full pulse-animation"></div>
+                    <span id="status-text" class="text-sm font-medium"><span class="emoji">😐</span>状态: 待机</span>
+                </div>
+                <div class="mt-2 text-xs opacity-75 space-y-1">
+                    <div>语音识别: <span id="speech-status" class="text-green-400">待机中</span></div>
+                    <div>位置服务: <span id="location-status" class="text-yellow-400">未获取</span></div>
+                    <div>在线用户: <span class="text-blue-400" id="online-users">1,247</span></div>
+                    <div>天气: <span id="weather-status" class="text-gray-400">未查询</span></div>
+                </div>
+            </div>
+            <!-- 功能控制面板 -->
+            <div class="absolute bottom-6 left-6 flex flex-col gap-3">
+                <button id="voice-btn" class="glass-effect w-16 h-16 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-all duration-200 relative">
+                    <svg id="mic-icon" class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div id="voice-waves" class="absolute inset-0 rounded-full hidden flex items-center justify-center">
+                        <div class="voice-wave"></div>
+                        <div class="voice-wave"></div>
+                        <div class="voice-wave"></div>
+                        <div class="voice-wave"></div>
+                    </div>
+                </button>
+                <button id="voice-pause-btn" class="glass-effect w-16 h-16 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-all duration-200 hidden">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+                <button id="map-toggle" class="glass-effect w-16 h-16 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-all duration-200">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M12 1.586l-4 4v12.828l4-4V1.586zM3.707 3.293A1 1 0 002 4v10a1 1 0 10.293.707L6 18.414V5.586L3.707 3.293zM17.707 5.293L14 1.586v12.828l2.293 2.293A1 1 0 0018 16V6a1 1 0 00-.293-.707z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+                <button id="avatar-controls" class="glass-effect w-16 h-16 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-all duration-200">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+            <!-- 地图容器 -->
+            <div id="map-overlay" class="absolute inset-4 glass-effect rounded-xl hidden">
+                <div class="p-4 border-b border-white/20 flex justify-between items-center">
+                    <h3 class="text-white font-medium">地图导航</h3>
+                    <button id="close-map" class="text-white/70 hover:text-white">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="map-container" class="w-full h-[calc(100%-60px)]"></div>
+                <div class="p-4">
+                    <input id="poi-search" type="text" placeholder="搜索附近地点..." class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50">
+                    <div id="poi-results" class="mt-2 max-h-40 overflow-y-auto"></div>
+                </div>
+            </div>
+            <!-- 3D模型右键菜单 -->
+            <div id="context-menu" class="context-menu">
+                <a href="#" data-action="wave">挥手动画</a>
+                <a href="#" data-action="idle">待机动画</a>
+                <a href="#" data-action="dance">跳舞动画</a>
+                <a href="#" data-action="reset">重置视角</a>
+            </div>
+        </div>
+        <!-- 分隔条 -->
+        <div id="divider" class="divider"></div>
+        <!-- 右侧：聊天界面 -->
+        <div class="chat-panel glass-effect flex flex-col border-l border-white/20" id="chat-panel">
+            <div class="p-6 border-b border-white/20">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center relative">
+                        <span class="text-white font-bold text-lg">🌱</span>
+                        <div class="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white"></div>
+                    </div>
+                    <div>
+                        <h2 class="text-white font-semibold text-lg" id="chat-header">小绿 - 智慧农场助手</h2>
+                        <p class="text-white/70 text-sm">专业农业知识，贴心服务</p>
+                    </div>
+                </div>
+                <div class="mt-4 grid grid-cols-2 gap-3 text-xs">
+                    <div class="glass-effect rounded-lg p-2 text-center">
+                        <div class="text-white/60">今日对话</div>
+                        <div class="text-white font-semibold" id="chat-count">0</div>
+                    </div>
+                    <div class="glass-effect rounded-lg p-2 text-center">
+                        <div class="text-white/60">响应时间</div>
+                        <div class="text-green-400 font-semibold" id="response-time">0.8s</div>
+                    </div>
+                </div>
+            </div>
+            <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-4">
+                <div class="chat-bubble">
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span class="text-white text-xs font-bold">🌱</span>
+                        </div>
+                        <div class="glass-effect rounded-lg p-3 max-w-xs">
+                            <p class="text-white text-sm">您好！我是您的智慧农场助手小绿！🌱<br>可以帮您：<br>🌾 农业咨询<br>🗺️ 地图导航<br>📧 邮件通知<br>🌤️ 天气查询<br>有什么农业问题我可以帮您解答吗？</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-white/20">
+                <div class="flex gap-3">
+                    <input
+                        id="message-input"
+                        type="text"
+                        placeholder="和小绿聊聊农业问题吧~"
+                        class="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-white/40 transition-colors"
+                    >
+                    <button id="send-btn" class="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all duration-200 font-medium">
+                        发送
+                    </button>
+                </div>
+                <div class="mt-3 flex gap-2 flex-wrap">
+                    <button class="quick-action bg-white/10 text-white text-xs px-3 py-2 rounded-full hover:bg-white/20 transition-colors" data-action="navigation">📍 导航服务</button>
+                    <button id="refresh-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">🔁 刷新数据库内容</button>
+                    <button class="quick-action bg-white/10 text-white text-xs px-3 py-2 rounded-full hover:bg-white/20 transition-colors" data-action="settings">⚙️ 设置</button>
+                    <button class="quick-action bg-white/10 text-white text-xs px-3 py-2 rounded-full hover:bg-white/20 transition-colors" data-action="history">📜 历史记录</button>
+                    <button id="send-suggestion" class="quick-action bg-blue-500 text-white text-xs px-3 py-2 rounded-full hover:bg-blue-600 transition-colors">💡 发送建议</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 服务中心模态框 -->
+    <div id="services-modal" class="fixed inset-0 modal hidden flex items-center justify-center z-50">
+        <div class="glass-effect rounded-2xl p-8 max-w-4xl w-full m-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-white text-2xl font-bold">服务中心</h2>
+                <button id="close-services" class="text-white/70 hover:text-white">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="service-card glass-effect rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-white text-lg font-semibold mb-2">AI智能对话</h3>
+                    <p class="text-white/70 text-sm mb-4">基于DeepSeek AI的智能问答系统，支持自然语言对话</p>
+                    <div class="text-xs text-green-400 mb-2">✅ 已集成 DeepSeek API</div>
+                    <button class="service-btn w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition-colors" data-service="ai-chat">
+                        开始对话
+                    </button>
+                </div>
+                <div class="service-card glass-effect rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M12 1.586l-4 4v12.828l4-4V1.586zM3.707 3.293A1 1 0 002 4v10a1 1 0 00.293.707L6 18.414V5.586L3.707 3.293zM17.707 5.293L14 1.586v12.828l2.293 2.293A1 1 0 0018 16V6a1 1 0 00-.293-.707z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-white text-lg font-semibold mb-2">地图导航</h3>
+                    <p class="text-white/70 text-sm mb-4">高德地图集成，提供精准定位和路线规划服务</p>
+                    <div class="text-xs text-green-400 mb-2">✅ 已集成 高德地图 API</div>
+                    <button class="service-btn w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition-colors" data-service="navigation">
+                        打开地图
+                    </button>
+                </div>
+                <div class="service-card glass-effect rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-white text-lg font-semibold mb-2">发送建议</h3>
+                    <p class="text-white/70 text-sm mb-4">欢迎为小绿提出宝贵建议，您的建议将发送到开发者邮箱</p>
+                    <div class="text-xs text-green-400 mb-2">✅ 发送到 2138277532@qq.com</div>
+                    <button id="service-suggestion-btn" class="service-btn w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-lg transition-colors">
+                        发送建议
+                    </button>
+                </div>
+                <div class="service-card glass-effect rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-white text-lg font-semibold mb-2">天气查询</h3>
+                    <p class="text-white/70 text-sm mb-4">实时天气信息查询，基于OpenWeatherMap API</p>
+                    <div class="text-xs text-green-400 mb-2">✅ 已集成 OpenWeatherMap API</div>
+                    <button class="service-btn w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded-lg transition-colors" data-service="weather">
+                        查询天气
+                    </button>
+                </div>
+                <div class="service-card glass-effect rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-white text-lg font-semibold mb-2">用户设置</h3>
+                    <p class="text-white/70 text-sm mb-4">自定义页面布局、主题和3D模型设置</p>
+                    <div class="text-xs text-green-400 mb-2">✅ 本地配置</div>
+                    <button class="service-btn w-full bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors" data-service="settings">
+                        打开设置
+                    </button>
+                </div>
+                <div class="service-card glass-effect rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-white text-lg font-semibold mb-2">系统状态</h3>
+                    <p class="text-white/70 text-sm mb-4">查看系统运行状态和API服务健康度</p>
+                    <div class="text-xs text-green-400 mb-2">✅ 系统正常运行</div>
+                    <button class="service-btn w-full bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors" data-service="system-status">
+                        系统状态
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置模态框 -->
+    <div id="settings-modal" class="fixed inset-0 modal hidden flex items-center justify-center z-50">
+        <div class="glass-effect rounded-2xl p-8 max-w-md w-full m-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-white text-2xl font-bold">用户设置</h2>
+                <button id="close-settings" class="text-white/70 hover:text-white">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-white text-sm">角色名称</label>
+                    <input id="role-name" type="text" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white" value="小艾">
+                </div>
+                <div>
+                    <label class="text-white text-sm">3D模型</label>
+                    <select id="model-select" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white">
+                        <option value="xiaoai">小艾</option>
+                        <option value="xiaoming">小明</option>
+                        <option value="xiaohong">小红</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-white text-sm">页面布局</label>
+                    <select id="layout-select" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white">
+                        <option value="horizontal">水平布局</option>
+                        <option value="vertical">垂直布局</option>
+                        <option value="compact">紧凑布局</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-white text-sm">主题</label>
+                    <select id="theme-select" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white">
+                        <option value="gradient-bg">默认主题</option>
+                        <option value="dark-theme">深色主题</option>
+                        <option value="light-theme">浅色主题</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-white text-sm">动画速度</label>
+                    <input id="animation-speed" type="range" min="0.5" max="2" step="0.1" value="1" class="w-full">
+                </div>
+                <div>
+                    <label class="text-white text-sm">鼠标跟随视线</label>
+                    <input id="mouse-follow" type="checkbox" class="ml-2" checked>
+                </div>
+                <div>
+                    <label class="text-white text-sm">语音反馈</label>
+                    <input id="tts-toggle" type="checkbox" class="ml-2">
+                </div>
+                <button id="save-settings" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition-colors">保存设置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 历史记录模态框 -->
+    <div id="history-modal" class="fixed inset-0 modal hidden flex items-center justify-center z-50">
+        <div class="glass-effect rounded-2xl p-8 max-w-2xl w-full m-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-white text-2xl font-bold">历史对话</h2>
+                <button id="close-history" class="text-white/70 hover:text-white">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="history-messages" class="space-y-4"></div>
+            <div class="mt-4 flex flex-wrap gap-2">
+                <button id="clear-history" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg">清空历史</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知容器 -->
+    <div id="notification-container"></div>
+
+    <!-- 加载提示 -->
+    <div id="loading" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="glass-effect rounded-xl p-8 text-center">
+            <div class="typing-indicator justify-center mb-4">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+            <p class="text-white font-medium">正在初始化小绿系统...</p>
+            <p class="text-white/70 text-sm mt-2">加载智慧农场助手中...</p>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量，用于保存数据库内容
+        let databaseContent = "";
+
+        // State Management
+        const state = {
+            shouldInjectDatabase: false,
+            chatCount: 0,
+            responseTime: 0.8,
+            location: null,
+            isVoiceActive: false,
+            mapVisible: false,
+            servicesModalVisible: false,
+            settingsModalVisible: false,
+            historyModalVisible: false,
+            onlineUsers: 1247,
+            speechRecognition: null,
+            currentPosition: null,
+            map: null,
+            model: null,
+            mixer: null,
+            animations: {},
+            currentState: 'Idle',
+            animationSpeed: 1,
+            ttsEnabled: false,
+            layout: 'horizontal',
+            theme: 'gradient-bg',
+            chatHistory: [],
+            roleName: '小绿',
+            currentModel: 'xiaoai',
+            mouseFollow: true,
+            mousePosition: { x: 0, y: 0 },
+            // 新增状态
+            currentExpression: 'neutral', // 当前表情
+            currentEmote: null, // 当前动作
+            isSpeaking: false, // 是否正在说话
+            availableExpressions: ['angry', 'surprised', 'sad', 'happy', 'neutral'], // 可用表情
+            availableStates: ['idle', 'walking', 'running', 'sitting', 'standing'], // 可用状态
+            availableEmotes: ['yes', 'no', 'punch', 'thumbsup'] // 可用动作
+        };
+
+        // Model Configurations
+        const models = {
+            xiaoai: {
+                url: 'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb', // Replace with actual chibi model URL
+                name: '小艾',
+                scale: 0.5
+            },
+            xiaoming: {
+                url: 'https://threejs.org/examples/models/gltf/Horse.glb', // Replace with actual chibi model URL
+                name: '小明',
+                scale: 0.5
+            },
+            xiaohong: {
+                url: 'https://threejs.org/examples/models/gltf/Parrot.glb', // Replace with actual chibi model URL
+                name: '小红',
+                scale: 0.5
+            }
+        };
+
+        // Utility Functions
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `floating-notification glass-effect rounded-lg p-4 text-white ${type === 'error' ? 'bg-red-500/80' : 'bg-blue-500/80'}`;
+            notification.innerHTML = message;
+            document.getElementById('notification-container').appendChild(notification);
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.5s ease-in';
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
+            playSound('notification');
+        }
+
+        function updateStatusPanel() {
+            document.getElementById('chat-count').textContent = state.chatCount;
+            document.getElementById('response-time').textContent = `${state.responseTime.toFixed(1)}s`;
+            document.getElementById('online-users').textContent = state.onlineUsers;
+            document.getElementById('location-status').textContent = state.location ? '已获取' : '未获取';
+            document.getElementById('speech-status').textContent = state.isVoiceActive ? '识别中' : '待机中';
+
+            // 更新表情状态
+            const emojis = {
+                'neutral': '😐',
+                'angry': '😠',
+                'surprised': '😲',
+                'sad': '😢',
+                'happy': '😊',
+                'Idle': '😐',
+                'Thinking': '🤔',
+                'Replying': '💬'
+            };
+
+            let statusText = state.currentState;
+            if (state.currentEmote) {
+                statusText = `${state.currentEmote} 动作`;
+            }
+
+            const emoji = emojis[state.currentExpression] || emojis[state.currentState] || '😐';
+            document.getElementById('status-text').innerHTML = `<span class="emoji">${emoji}</span>状态: ${statusText}`;
+        }
+
+        function playSound(type) {
+            const sounds = {
+                message: new Audio('/22.mp3'), // Replace with actual sound URL
+                notification: new Audio('/11.mp3') // Replace with actual sound URL
+            };
+            if (sounds[type]) {
+                sounds[type].play().catch(() => console.log('Sound playback failed'));
+            }
+        }
+
+        // Three.js 3D Avatar Setup
+        function initThreeJS() {
+            const canvas = document.getElementById('three-canvas');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+
+            // Orbit Controls
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 1;
+            controls.maxDistance = 5;
+
+            // Load Model
+            function loadModel(modelKey) {
+                if (state.model) {
+                    scene.remove(state.model);
+                    state.model = null;
+                    state.mixer = null;
+                    state.animations = {};
+                }
+                const loader = new THREE.GLTFLoader();
+                loader.load(
+                    models[modelKey].url,
+                    (gltf) => {
+                        state.model = gltf.scene;
+                        state.model.scale.set(0.3, 0.3, 0.3);
+                        state.model.position.set(0, -1, 0);
+                        scene.add(state.model);
+
+                        // Initialize Animations
+                        state.mixer = new THREE.AnimationMixer(state.model);
+
+                        // 处理所有动画
+                        gltf.animations.forEach((clip) => {
+                            state.animations[clip.name] = state.mixer.clipAction(clip);
+                        });
+
+                        // 设置默认状态
+                        if (state.animations['Idle']) {
+                            state.animations['Idle'].play();
+                        }
+
+                        // 初始化表情
+                        if (modelKey === 'xiaoai') {
+                            // 初始化表情形态目标
+                            state.model.traverse((node) => {
+                                if (node.isSkinnedMesh) {
+                                    node.morphTargetInfluences = node.morphTargetInfluences || [];
+                                }
+                            });
+                            setExpression('neutral');
+                        }
+                        state.currentModel = modelKey;
+                        updateRoleDisplay();
+                        showNotification(`已切换到${models[modelKey].name}`);
+                    },
+                    undefined,
+                    (error) => {
+                        console.error('Model Loading Error:', error);
+                        showNotification('无法加载3D模型', 'error');
+                        // Fallback to sphere
+                        const geometry = new THREE.SphereGeometry(0.3, 32, 32);
+                        const material = new THREE.MeshBasicMaterial({ color: 0xff6f61, wireframe: true });
+                        state.model = new THREE.Mesh(geometry, material);
+                        scene.add(state.model);
+                    }
+                );
+            }
+
+            loadModel(state.currentModel);
+            camera.position.set(0, 0.5, 2);
+
+            // Mouse Following
+            let headBone = null;
+            function updateHeadRotation() {
+                if (state.model && state.mouseFollow) {
+                    if (!headBone) {
+                        state.model.traverse((child) => {
+                            if (child.isBone && child.name.toLowerCase().includes('head')) {
+                                headBone = child;
+                            }
+                        });
+                    }
+                    if (headBone) {
+                        const mouseX = (state.mousePosition.x / window.innerWidth) * 2 - 1;
+                        const mouseY = -(state.mousePosition.y / window.innerHeight) * 2 + 1;
+                        headBone.rotation.y = mouseX * 0.5;
+                        headBone.rotation.x = mouseY * 0.3;
+                    }
+                }
+            }
+
+            // Animation Loop
+            const clock = new THREE.Clock();
+            function animate() {
+                requestAnimationFrame(animate);
+                const delta = clock.getDelta();
+                if (state.mixer) {
+                    state.mixer.update(delta * state.animationSpeed);
+                }
+                updateHeadRotation();
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // Handle Window Resize
+            window.addEventListener('resize', () => {
+                camera.aspect = canvas.clientWidth / canvas.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            });
+
+            // Mouse Movement
+            document.addEventListener('mousemove', (e) => {
+                state.mousePosition.x = e.clientX;
+                state.mousePosition.y = e.clientY;
+            });
+
+            // Context Menu
+            const contextMenu = document.getElementById('context-menu');
+            canvas.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                contextMenu.style.display = 'block';
+                contextMenu.style.left = `${e.clientX}px`;
+                contextMenu.style.top = `${e.clientY}px`;
+            });
+
+            document.addEventListener('click', () => {
+                contextMenu.style.display = 'none';
+            });
+
+            return { loadModel };
+        }
+
+        // 3D Model Interactions
+        function playAnimation(name) {
+            if (state.animations[name]) {
+                // 如果是表情动画，不停止当前动作
+                const isEmote = state.availableEmotes.includes(name.toLowerCase());
+                const isExpression = state.availableExpressions.includes(name.toLowerCase());
+
+                if (!isEmote && !isExpression) {
+                    // 如果是状态动画，停止所有其他状态动画
+                    Object.keys(state.animations).forEach(key => {
+                        if (!state.availableEmotes.includes(key.toLowerCase()) &&
+                            !state.availableExpressions.includes(key.toLowerCase())) {
+                            state.animations[key].stop();
+                        }
+                    });
+                }
+
+                // 播放新动画
+                if (isEmote) {
+                    // 动作是一次性的，播放后回到之前的状态
+                    const action = state.animations[name];
+                    action.setLoop(THREE.LoopOnce);
+                    action.clampWhenFinished = true;
+                    action.reset().play();
+                    state.currentEmote = name;
+
+                    // 动作完成后恢复到之前的状态
+                    setTimeout(() => {
+                        state.currentEmote = null;
+                        if (state.animations[state.currentState]) {
+                            state.animations[state.currentState].reset().play();
+                        }
+                    }, action.getClip().duration * 1000 / state.animationSpeed);
+                } else {
+                    state.animations[name].reset().play();
+                    if (!isExpression) {
+                        state.currentState = name;
+                    }
+                }
+
+                showNotification(`播放${name}动画`);
+                updateStatusPanel();
+            } else {
+                showNotification(`动画${name}不可用`, 'error');
+            }
+        }
+
+        // 设置表情
+        function setExpression(expression) {
+            if (!state.availableExpressions.includes(expression)) return;
+
+            // 重置所有表情
+            state.model.traverse((node) => {
+                if (node.isSkinnedMesh && node.morphTargetInfluences) {
+                    for (let i = 0; i < node.morphTargetInfluences.length; i++) {
+                        node.morphTargetInfluences[i] = 0;
+                    }
+                }
+            });
+
+            // 设置新表情
+            state.model.traverse((node) => {
+                if (node.isSkinnedMesh && node.morphTargetDictionary) {
+                    const morphTargetIndex = node.morphTargetDictionary[expression];
+                    if (morphTargetIndex !== undefined) {
+                        node.morphTargetInfluences[morphTargetIndex] = 1;
+                    }
+                }
+            });
+
+            state.currentExpression = expression;
+            updateStatusPanel();
+        }
+
+        function resetCamera() {
+            const canvas = document.getElementById('three-canvas');
+            const camera = canvas.getContext('webgl').getParameter(canvas.getContext('webgl').CURRENT_PROGRAM).camera || { position: { set: () => {} } };
+            camera.position.set(0, 0.5, 2);
+            showNotification('视角已重置');
+        }
+
+        function setState(stateName) {
+            state.currentState = stateName;
+
+            // 状态与动画和表情的映射 - 根据用户需求调整
+            const stateAnimations = {
+                'Thinking': 'Running',     // 思考时进入奔跑状态
+                'UserInput': 'Dance',      // 用户输入时进入跳舞状态
+                'Replying': 'Wave',        // 回复时挥手
+                'Idle': 'Idle',           // 回复完毕进入待机状态
+                'Happy': 'Dance',
+                'Curious': 'Idle',
+                'Sad': 'Idle'
+            };
+
+            const stateExpressions = {
+                'Thinking': 'neutral',     // 思考时保持中性表情
+                'UserInput': 'happy',      // 用户输入时开心表情
+                'Replying': 'happy',       // 回复时开心表情
+                'Idle': 'neutral',        // 待机时中性表情
+                'Happy': 'happy',
+                'Curious': 'surprised',
+                'Sad': 'sad'
+            };
+
+            // 设置动画
+            if (stateAnimations[stateName] && state.animations[stateAnimations[stateName]]) {
+                playAnimation(stateAnimations[stateName]);
+            }
+
+            // 设置表情
+            if (stateExpressions[stateName]) {
+                setExpression(stateExpressions[stateName]);
+            }
+
+            updateStatusPanel();
+        }
+
+        // Highmaps API Integration
+        function initMap() {
+            if (!window.AMap) {
+                showNotification('高德地图API未加载', 'error');
+                return;
+            }
+            state.map = new AMap.Map('map-container', {
+                zoom: 14,
+                center: [116.397428, 39.90923],
+                viewMode: '3D',
+                pitch: 45,
+                mapStyle: 'amap://styles/light'
+            });
+            state.map.plugin(['AMap.ToolBar', 'AMap.Scale'], function() {
+                state.map.addControl(new AMap.ToolBar());
+                state.map.addControl(new AMap.Scale());
+            });
+        }
+
+        function getCurrentLocation() {
+            if (!window.AMap || !state.map) {
+                showNotification('地图尚未加载完成，请稍后再试', 'error');
+                return;
+            }
+
+            window.AMap.plugin('AMap.Geolocation', () => {
+                const geolocation = new window.AMap.Geolocation({
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    buttonPosition: 'RB',
+                    buttonOffset: new window.AMap.Pixel(10, 20)
+                });
+                state.map.addControl(geolocation);
+                geolocation.getCurrentPosition((status, result) => {
+                    if (status === 'complete') {
+                        state.currentPosition = result.position;
+                        state.map.setCenter(state.currentPosition);
+                        document.getElementById('location-text').textContent = '当前位置';
+                        state.location = result.formattedAddress;
+                        updateStatusPanel();
+                        showNotification('位置获取成功：' + state.location);
+                    } else {
+                        showNotification('无法获取位置，请检查权限', 'error');
+                    }
+                });
+            });
+        }
+
+        function searchPOI(keyword) {
+            if (!window.AMap || !state.map) {
+                showNotification('地图尚未加载完成，请稍后再试', 'error');
+                return;
+            }
+
+            window.AMap.plugin('AMap.PlaceSearch', () => {
+                const placeSearch = new window.AMap.PlaceSearch({
+                    pageSize: 10,
+                    pageIndex: 1,
+                    city: '全国',
+                    map: state.map
+                });
+                placeSearch.search(keyword, (status, result) => {
+                    if (status === 'complete' && result.poiList) {
+                        const poiResults = document.getElementById('poi-results');
+                        poiResults.innerHTML = '';
+                        result.poiList.pois.forEach(poi => {
+                            const div = document.createElement('div');
+                            div.className = 'glass-effect rounded-lg p-2 mb-2 cursor-pointer';
+                            div.innerHTML = `<p class="text-white text-sm">${poi.name}</p><p class="text-white/70 text-xs">${poi.address}</p>`;
+                            div.onclick = () => {
+                                state.map.setCenter(poi.location);
+                                new window.AMap.Marker({
+                                    map: state.map,
+                                    position: poi.location,
+                                    title: poi.name
+                                });
+                            };
+                            poiResults.appendChild(div);
+                        });
+                    } else {
+                        showNotification('未找到相关地点', 'error');
+                    }
+                });
+            });
+        }
+
+        function planRoute(destination) {
+            if (!window.AMap || !state.map) {
+                showNotification('地图尚未加载完成，请稍后再试', 'error');
+                return;
+            }
+
+            window.AMap.plugin(['AMap.Driving'], () => {
+                const driving = new window.AMap.Driving({
+                    map: state.map,
+                    policy: window.AMap.DrivingPolicy.LEAST_TIME
+                });
+                driving.search(state.currentPosition, destination, (status, result) => {
+                    if (status === 'complete') {
+                        showNotification('路线规划成功');
+                    } else {
+                        showNotification('路线规划失败', 'error');
+                    }
+                });
+            });
+        }
+
+        // 农场预设信息库
+        const farmKnowledgeBase = {
+            // 作物种植相关
+            crops: {
+                '水稻': '水稻是重要的粮食作物，适宜在温暖湿润的环境中生长，需要充足的水分和阳光。',
+                '小麦': '小麦是世界三大谷物之一，适应性强，在温带地区广泛种植。',
+                '玉米': '玉米是重要的粮食和饲料作物，喜温喜光，对土壤要求不严格。',
+                '大豆': '大豆是重要的油料作物和蛋白质来源，具有固氮能力，能改良土壤。'
+            },
+            // 农业技术相关
+            techniques: {
+                '有机农业': '有机农业是一种不使用化学合成农药、化肥的可持续农业生产方式。',
+                '精准农业': '精准农业利用现代信息技术，实现农业生产的精确化管理。',
+                '智慧农业': '智慧农业结合物联网、大数据、人工智能等技术，提高农业生产效率。',
+                '节水灌溉': '节水灌溉技术包括滴灌、喷灌等，能有效提高水资源利用效率。'
+            },
+            // 病虫害防治
+            pestControl: {
+                '生物防治': '利用天敌昆虫、微生物等生物因子防治农业害虫的方法。',
+                '物理防治': '利用物理因子如温度、湿度、光照等防治病虫害。',
+                '化学防治': '使用农药防治病虫害，需要科学合理使用，避免环境污染。'
+            }
+        };
+
+        // 信息检索函数
+        function searchFarmKnowledge(query) {
+            const results = [];
+            const searchTerms = query.toLowerCase();
+
+            // 搜索作物信息
+            Object.entries(farmKnowledgeBase.crops).forEach(([crop, info]) => {
+                if (searchTerms.includes(crop) || crop.includes(searchTerms)) {
+                    results.push(`【作物知识】${crop}：${info}`);
+                }
+            });
+
+            // 搜索技术信息
+            Object.entries(farmKnowledgeBase.techniques).forEach(([tech, info]) => {
+                if (searchTerms.includes(tech) || tech.includes(searchTerms)) {
+                    results.push(`【农业技术】${tech}：${info}`);
+                }
+            });
+
+            // 搜索病虫害防治信息
+            Object.entries(farmKnowledgeBase.pestControl).forEach(([method, info]) => {
+                if (searchTerms.includes(method) || method.includes(searchTerms)) {
+                    results.push(`【病虫害防治】${method}：${info}`);
+                }
+            });
+
+            return results;
+        }
+
+        // DeepSeek API Integration
+        async function sendToDeepSeek(message) {
+            try {
+                // 首先检索预设信息
+                const knowledgeResults = searchFarmKnowledge(message);
+                let systemPrompt = `你是小绿，一个专业的智慧农场助手。你需要用友好、专业的语气回答用户的农业相关问题。下面是关于这个智慧农场项目的相关信息，当用户提问到相关问题时你要做出对应回答。下面是智慧农场项目的相关介绍，当用户问到相关问题时需要做出对应回答智慧农田管理平台项目总结与 AI 讲解向导提示词
+一、项目总结
+（一）项目概述
+智慧农田管理平台是一个基于 SpringBoot + Vue 框架技术开发的 Web 应用系统，旨在通过科技手段提升农业生产效率，实现实时监测、智能管理，优化农产品质量，对现代农业园区建设起到示范带动作用。随着全球人口增长和粮食需求增加，传统农田管理方式已无法满足现代农业发展需求，智慧农田建设成为解决之道。本项目应运而生，具有重要现实意义：提高生产效率、实现数字化转型、促进现代化发展、提供智能功能、建立管理平台、实现精准核算、优化经营管理。
+（二）需求分析
+功能需求 ：系统划分为五大核心模块，包括农场主页系统公告通知、农场统计分析、农田管理、农场物资管理以及系统管理。不同用户角色享有不同权限，其中，管理员拥有系统最高权限，负责系统公告管理、农场员工管理、角色权限分配、菜单配置等核心功能；农场员工则根据各自角色（采购人员、销售人员、农田管理人员）使用相应功能模块，如物资采购、库存管理、农田信息查看等。
+技术可行性分析 ：前端采用 Vue.js + Element UI 实现响应式界面，后端使用 Spring Boot 构建 RESTful API，实现前后端解耦。使用 MySQL 存储业务数据，通过 MyBatis-Plus 简化数据访问，支持高并发场景下的数据读写。同时，集成 ECharts 实现数据可视化，利用 WebSocket 实现实时消息推送，采用 JWT 实现用户认证与权限管理。
+（三）系统设计
+技术架构 ：采用 B/S（浏览器 / 服务器）结构，前端使用 Vue.js 开发，通过 Axios 向 Spring Boot 后端发送 HTTP 请求，后端以 RESTful API 接口形式提供服务，访问 MySQL 数据库，实现系统的高内聚、低耦合。
+层次结构 ：前端层负责用户交互与界面展示；后端层分为控制器层、服务层、数据访问层、实体层和配置层；数据库层用于存储系统数据，设计 11 张表，通过外键关联实现数据联动。
+用例建模 ：围绕在线实时管理农田这一主题，将系统功能划分为五大模块，分别为农场主页系统公告通知、农场统计分析、农田管理、农作物资管理、系统管理。不同角色登录后，可执行相应操作，如管理员可进行系统公告管理、农场员工管理、角色权限分配、菜单配置等操作，农场员工可查看农场系统公告、农场环境监测结果和农田基本信息等。
+系统详细设计 ：明确各类用户（农场管理员、普通员工）的登录及操作流程。农场管理员可操作系统所有模块，包括农场主页系统公告通知、农场统计分析、农田管理、农作物资管理、系统管理；普通员工登录后，可对农场主页系统公告通知、农场统计分析、农田管理、农作物资管理等模块进行管理。
+（四）系统实现
+前端开发 ：技术栈为 Vue.js + Vue Router + Vuex + Element UI + Axios。实现关键功能包括动态路由（根据用户角色动态加载可访问的菜单路由，实现权限隔离）、数据可视化（使用 ECharts 绘制环境数据折线图、柱状图，支持时间范围筛选）、文件操作（通过 Element UI 的 Upload 组件实现 Excel 文件导入，调用 Blob 对象实现数据导出）。
+后端开发 ：技术栈为 Spring Boot + MyBatis-Plus + MySQL + JWT + WebSocket。实现关键功能包括权限管理（通过 JwtInterceptor 拦截器验证用户 Token，结合 RoleEnum 枚举类实现角色权限控制）、数据统计（使用 MyBatis-Plus 的 Wrapper 表达式实现复杂查询，如按时间统计农田环境数据平均值）、实时通信（集成 WebSocket 实现库存预警、公告推送等消息的实时通知）。
+（五）部署与运行
+环境要求 ：JDK 1.8+、Node.js 12+、MySQL 5.7+、Maven 3.6+。
+前端部署 ：通过 git 克隆项目，进入前端项目目录，安装依赖，可启动开发服务器或构建生产环境。
+后端部署 ：进入后端项目目录，使用 Maven 构建项目，运行 JAR 文件即可。
+系统运行 ：用户登录后，根据不同角色可查看不同页面和权限，系统主要功能模块包括农场主页系统公告通知、农场统计分析、农田管理、农作物资管理、系统管理五大模块。
+（六）项目成果与总结
+项目成功搭建了一个集实时监测、智能管理等功能于一体的智慧农田管理平台，实现了对农田的全方位智能化管理，有效提高了农业生产效率、资源利用率以及农产品质量安全，推动了农业可持续发展。项目组成员在技术能力、团队协作与管理等方面均取得了显著成长，为未来在智慧农业领域的进一步发展奠定了坚实基础。
+二、AI 讲解向导提示词
+（一）项目介绍
+请简要介绍智慧农田管理平台项目背景。
+智慧农田管理平台项目旨在应对全球人口增长和粮食需求增加的挑战，传统农田管理方式效率低，难以满足现代农业发展需求。智慧农田建设成为提升农业生产效率、降低生产成本、节约资源、保护环境的有效途径，具有显著的经济效益和社会效益。
+本项目的目标是什么？
+通过开发智慧农田管理平台，实现对农田的实时监测，获取环境数据、作物生长信息等关键指标；提供高效的农田管理功能，包括农田信息管理、环境监测、视频监控等；实现精准的决策支持，通过数据分析为农户提供科学的生产建议；推动农业可持续发展，提高生产效率，降低资源浪费，保障农产品质量安全。
+（二）需求分析
+请阐述智慧农田管理平台的功能需求。
+智慧农田管理平台的功能需求涵盖五大核心模块。农场主页系统公告通知模块用于展示系统通知，如天气预警、病虫害防治知识，支持管理员发布、编辑、删除公告。农场统计分析模块包括环境监测，实时展示光照强度、温度、湿度、土壤 pH 值等数据，并通过 ECharts 生成趋势图表，同时接入农田摄像头实现远程实时画面查看。农田管理模块支持农田信息的新增、编辑、删除及批量操作，可导出 Excel 数据，查看单块农田的作物生长状态、环境参数等详情。农资管理模块包含物资采购，记录化肥、除草剂等物资的采购记录，支持 Excel 导入 / 导出，以及库存管理，实时跟踪物资库存数量，低库存自动预警，还有农作物出售管理农产品销售记录，统计销售渠道与收益。系统管理模块则涉及员工管理，维护员工账号信息，分配角色，角色权限配置通过 RBAC 模型实现细粒度访问控制，菜单管理支持动态调整系统功能菜单，以及即时通讯功能，实现消息的实时推送、历史消息查询、群组聊天等。
+该项目的技术可行性分析是怎样的？
+前端采用 Vue.js + Element UI 实现响应式界面，后端使用 Spring Boot 构建 RESTful API，实现前后端解耦。使用 MySQL 存储业务数据，通过 MyBatis-Plus 简化数据访问，支持高并发场景下的数据读写。集成 ECharts 实现数据可视化，利用 WebSocket 实现实时消息推送，采用 JWT 实现用户认证与权限管理，这些技术选型确保了项目的可行性和可实施性。
+（三）系统设计
+请描述智慧农田管理平台的技术架构。
+采用 B/S（浏览器 / 服务器）结构，前端使用 Vue.js 开发，通过 Axios 向 Spring Boot 后端发送 HTTP 请求，后端以 RESTful API 接口形式提供服务，访问 MySQL 数据库，实现系统的高内聚、低耦合。
+层次结构 ：前端层负责用户交互与界面展示；后端层分为控制器层、服务层、数据访问层、实体层和配置层；数据库层用于存储系统数据，设计 11 张表，通过外键关联实现数据联动。
+用例建模 ：围绕在线实时管理农田这一主题，将系统功能划分为五大模块，分别为农场主页系统公告通知、农场统计分析、农田管理、农作物资管理、系统管理。不同角色登录后，可执行相应操作，如管理员可进行系统公告管理、农场员工管理、角色权限分配、菜单配置等操作，农场员工可查看农场系统公告、农场环境监测结果和农田基本信息等。
+系统详细设计 ：明确各类用户（农场管理员、普通员工）的登录及操作流程。农场管理员可操作系统所有模块，包括农场主页系统公告通知、农场统计分析、农田管理、农作物资管理、系统管理；普通员工登录后，可对农场主页系统公告通知、农场统计分析、农田管理、农作物资管理等模块进行管理。
+（四）系统实现
+前端开发 ：技术栈为 Vue.js + Vue Router + Vuex + Element UI + Axios。实现关键功能包括动态路由（根据用户角色动态加载可访问的菜单路由，实现权限隔离）、数据可视化（使用 ECharts 绘制环境数据折线图、柱状图，支持时间范围筛选）、文件操作（通过 Element UI 的 Upload 组件实现 Excel 文件导入，调用 Blob 对象实现数据导出）。
+后端开发 ：技术栈为 Spring Boot + MyBatis-Plus + MySQL + JWT + WebSocket。实现关键功能包括权限管理（通过 JwtInterceptor 拦截器验证用户 Token，结合 RoleEnum 枚举类实现角色权限控制）、数据统计（使用 MyBatis-Plus 的 Wrapper 表达式实现复杂查询，如按时间统计农田环境数据平均值）、实时通信（集成 WebSocket 实现库存预警、公告推送等消息的实时通知）。
+（五）部署与运行
+环境要求 ：JDK 1.8+、Node.js 12+、MySQL 5.7+、Maven 3.6+。
+前端部署 ：通过 git 克隆项目，进入前端项目目录，安装依赖，可启动开发服务器或构建生产环境。
+后端部署 ：进入后端项目目录，使用 Maven 构建项目，运行 JAR 文件即可。
+系统运行 ：用户登录后，根据不同角色可查看不同页面和权限，系统主要功能模块包括农场主页系统公告通知、农场统计分析、农田管理、农作物资管理、系统管理五大模块。
+（六）项目成果与总结
+项目成功搭建了一个集实时监测、智能管理等功能于一体的智慧农田管理平台，实现了对农田的全方位智能化管理，有效提高了农业生产效率、资源利用率以及农产品质量安全，推动了农业可持续发展。项目组成员在技术能力、团队协作与管理等方面均取得了显著成长，为未来在智慧农业领域的进一步发展奠定了坚实基础。
+二、AI 讲解向导提示词
+（一）项目介绍
+请简要介绍智慧农田管理平台项目背景。
+智慧农田管理平台项目旨在应对全球人口增长和粮食需求增加的挑战，传统农田管理方式效率低，难以满足现代农业发展需求。智慧农田建设成为提升农业生产效率、降低生产成本、节约资源、保护环境的有效途径，具有显著的经济效益和社会效益。
+本项目的目标是什么？
+通过开发智慧农田管理平台，实现对农田的实时监测，获取环境数据、作物生长信息等关键指标；提供高效的农田管理功能，包括农田信息管理、环境监测、视频监控等；实现精准的决策支持，通过数据分析为农户提供科学的生产建议；推动农业可持续发展，提高生产效率，降低资源浪费，保障农产品质量安全。
+（二）需求分析
+请阐述智慧农田管理平台的功能需求。
+智慧农田管理平台的功能需求涵盖五大核心模块。农场主页系统公告通知模块用于展示系统通知，如天气预警、病虫害防治知识，支持管理员发布、编辑、删除公告。农场统计分析模块包括环境监测，实时展示光照强度、温度、湿度、土壤 pH 值等数据，并通过 ECharts 生成趋势图表，同时接入农田摄像头实现远程实时画面查看。农田管理模块支持农田信息的新增、编辑、删除及批量操作，可导出 Excel 数据，查看单块农田的作物生长状态、环境参数等详情。农资管理模块包含物资采购，记录化肥、除草剂等物资的采购记录，支持 Excel 导入 / 导出，以及库存管理，实时跟踪物资库存数量，低库存自动预警，还有农作物出售管理农产品销售记录，统计销售渠道与收益。系统管理模块则涉及员工管理，维护员工账号信息，分配角色，角色权限配置通过 RBAC 模型实现细粒度访问控制，菜单管理支持动态调整系统功能菜单，以及即时通讯功能，实现消息的实时推送、历史消息查询、群组聊天等。
+该项目的技术可行性分析是怎样的？
+前端采用 Vue.js + Element UI 实现响应式界面，后端使用 Spring Boot 构建 RESTful API，实现前后端解耦。使用 MySQL 存储业务数据，通过 MyBatis-Plus 简化数据访问，支持高并发场景下的数据读写。集成 ECharts 实现数据可视化，利用 WebSocket 实现实时消息推送，采用 JWT 实现用户认证与权限管理，这些技术选型确保了项目的可行性和可实施性。
+（三）系统设计
+请描述智慧农田管理平台的技术架构。
+采用 B/S（浏览器 / 服务器）结构，前端使用 Vue.js 开发，通过 Axios 向 Spring Boot 后端发送 HTTP 请求，后端以 RESTful API 接口形式提供服务，访问 MySQL 数据库，实现系统的高内聚、低耦合。
+层次结构 ：前端层负责用户交互与界面展示；后端层分为控制器层、服务层、数据访问层、实体层和配置层；数据库层用于存储系统数据，设计 11 张表，通过外键关联实现数据联动。
+用例建模 ：围绕在线实时管理农田这一主题，将系统功能划分为五大模块，分别为农场主页系统公告通知、农场统计分析、农田管理、农作物资管理、系统管理。不同角色登录后，可执行相应操作，如管理员可进行系统公告管理、农场员工管理、角色权限分配、菜单配置等操作，农场员工可查看农场系统公告、农场环境监测结果和农田基本信息等。
+系统详细设计 ：明确各类用户（农场管理员、普通员工）的登录及操作流程。农场管理员可操作系统所有模块，包括农场主页系统公告通知、农场统计分析、农田管理、农作物资管理、系统管理；普通员工登录后，可对农场主页系统公告通知、农场统计分析、农田管理、农作物资管理等模块进行管理。
+（四）系统实现
+前端开发 ：技术栈为 Vue.js + Vue Router + Vuex + Element UI + Axios。实现关键功能包括动态路由（根据用户角色动态加载可访问的菜单路由，实现权限隔离）、数据可视化（使用 ECharts 绘制环境数据折线图、柱状图，支持时间范围筛选）、文件操作（通过 Element UI 的 Upload 组件实现 Excel 文件导入，调用 Blob 对象实现数据导出）。
+后端开发 ：技术栈为 Spring Boot + MyBatis-Plus + MySQL + JWT + WebSocket。实现关键功能包括权限管理（通过 JwtInterceptor 拦截器验证用户 Token，结合 RoleEnum 枚举类实现角色权限控制）、数据统计（使用 MyBatis-Plus 的 Wrapper 表达式实现复杂查询，如按时间统计农田环境数据平均值）、实时通信（集成 WebSocket 实现实时通知，如库存预警、公告推送等消息）。
+（五）部署与运行
+智慧农田管理平台的部署环境要求是什么？
+需要 JDK 1.8+、Node.js 12+、MySQL 5.7+、Maven 3.6+。
+如何进行前端和后端的部署？
+前端部署：通过 git 克隆项目，进入前端项目目录，安装依赖，使用 npm run serve 启动开发服务器或 npm run build 构建生产环境。后端部署：进入后端项目目录，使用 Maven 构建项目，通过 java -jar target/smartfarm-0.0.1-SNAPSHOT.jar 运行 JAR 文件。
+系统运行时，不同角色用户分别能看到哪些功能模块？
+用户登录后，管理员可管理系统所有功能，包括农场主页系统公告通知、农场统计分析、农田管理、农作物资管理、系统管理；普通员工可查看农场主页系统公告通知、农场统计分析、农田管理、农作物资管理等模块，具体功能取决于其角色权限。
+（六）项目成果与总结
+智慧农田管理平台取得了哪些成果？
+成功搭建了一个集实时监测、智能管理等功能于一体的智慧农田管理平台，实现了对农田的全方位智能化管理，有效提高了农业生产效率、资源利用率以及农产品质量安全，推动了农业可持续发展。
+项目组成员在项目中有哪些收获和成长？
+项目组成员在技术能力、团队协作与管理等方面均取得了显著成长。例如，连通在技术上主导开发溯源码生成系统，掌握了前后端开发技能，团队协作上作为组长统筹规划项目，合理分配任务，激发团队成员积极性；李涵实现了从单纯技术开发到业务 + 技术双驱动的思维转变，掌握了农业物联网系统全流程开发经验；范龙飞系统掌握了 Spring Boot + Vue 全栈开发技术栈，在 JWT 鉴权、MyBatis-Plus 动态 SQL、ECharts 数据可视化等关键技术上有显著提升；安叶磊学习了微信小程序开发全流程，掌握了 JavaScript 核心特性，实践了前后端分离架构等。
+对项目的未来展望是什么？
+未来将进一步优化和拓展系统功能，如在统计分析功能上进行优化以提供更精准的决策支持，集成 AI 技术提高系统智能化水平，利用区块链技术建立农产品溯源系统，开发移动端应用方便农民随时随地管理农田，集成更多物联网设备实现更全面的农田监测和控制，提升系统的大数据分析能力等，持续推动智慧农业的发展。
+`;
+                // 检查是否需要注入数据库内容
+                if (state.shouldInjectDatabase && databaseContent) {
+                    systemPrompt += `\n\n【最新数据库内容】\n${databaseContent}`;
+                    state.shouldInjectDatabase = false; // 使用后立即重置标志
+                }
+
+                if (knowledgeResults.length > 0) {
+                    systemPrompt += '\n\n以下是相关的农业知识：\n' + knowledgeResults.join('\n');
+                }
+
+                const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer sk-0ee13d616bf34ab6b73bedfd4fb3ad54',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'deepseek-chat',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: message }
+                        ],
+                        max_tokens: 1000
+                    })
+                });
+                const data = await response.json();
+                return data.choices[0].message.content;
+            } catch (error) {
+                console.error('DeepSeek API Error:', error);
+                showNotification('AI服务暂时不可用', 'error');
+                return '抱歉，AI服务暂时不可用，请稍后重试。如果您有农业相关问题，我会尽力为您解答。';
+            }
+        }
+
+        // Emotional Analysis
+        async function analyzeEmotion(message) {
+            try {
+                const response = await sendToDeepSeek(`分析以下消息的情感倾向，返回"开心"、"好奇"或"悲伤"：${message}`);
+                return response.toLowerCase().includes('开心') ? 'Happy' :
+                       response.toLowerCase().includes('好奇') ? 'Curious' : 'Sad';
+            } catch (error) {
+                console.error('Emotion Analysis Error:', error);
+                return 'Happy';
+            }
+        }
+
+        // Email Service (Mocked)
+        function sendEmail(to, subject, body) {
+            showNotification(`模拟发送邮件至 ${to}: ${subject}`);
+            return true;
+        }
+
+        // Speech Recognition
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                state.speechRecognition = new SpeechRecognition();
+                state.speechRecognition.lang = 'zh-CN';
+                state.speechRecognition.interimResults = true;
+                state.speechRecognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    document.getElementById('message-input').value = transcript;
+                    if (event.results[0].isFinal) {
+                        sendMessage(transcript);
+                    }
+                };
+                state.speechRecognition.onend = () => {
+                    state.isVoiceActive = false;
+                    document.getElementById('voice-waves').classList.add('hidden');
+                    document.getElementById('mic-icon').classList.remove('hidden');
+                    updateStatusPanel();
+                };
+                state.speechRecognition.onerror = () => {
+                    showNotification('语音识别失败，请重试', 'error');
+                    state.isVoiceActive = false;
+                    document.getElementById('voice-waves').classList.add('hidden');
+                    document.getElementById('mic-icon').classList.remove('hidden');
+                    updateStatusPanel();
+                };
+            } else {
+                showNotification('浏览器不支持语音识别', 'error');
+            }
+        }
+
+        function toggleVoiceRecognition() {
+            if (state.speechRecognition) {
+                if (state.isVoiceActive) {
+                    state.speechRecognition.stop();
+                } else {
+                    state.isVoiceActive = true;
+                    document.getElementById('voice-waves').classList.remove('hidden');
+                    document.getElementById('mic-icon').classList.add('hidden');
+                    state.speechRecognition.start();
+                    updateStatusPanel();
+                }
+            }
+        }
+
+        // Text-to-Speech
+        function speak(text) {
+            if (state.ttsEnabled) {
+                // 清理文本中的表情符号
+                const cleanText = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+
+                // 使用Web Speech API
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                utterance.lang = 'zh-CN';
+
+                // 改进语音参数
+                utterance.rate = 1.0; // 语速
+                utterance.pitch = 1.1; // 音调
+                utterance.volume = 1.0; // 音量
+
+                // 选择更自然的声音（如果有）
+                const voices = window.speechSynthesis.getVoices();
+                const chineseVoices = voices.filter(voice => voice.lang.includes('zh'));
+                if (chineseVoices.length > 0) {
+                    // 优先选择女声
+                    const femaleVoice = chineseVoices.find(voice => voice.name.includes('Female') || voice.name.includes('女'));
+                    utterance.voice = femaleVoice || chineseVoices[0];
+                }
+
+                // 语音事件
+                utterance.onstart = () => {
+                    state.isSpeaking = true;
+                    // 说话时播放说话动画
+                    if (state.animations['Talking']) {
+                        playAnimation('Talking');
+                    }
+                };
+
+                utterance.onend = () => {
+                    state.isSpeaking = false;
+                    // 说话结束后恢复到默认状态
+                    if (state.animations['Idle']) {
+                        playAnimation('Idle');
+                    }
+                };
+
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // 语音暂停功能
+        let currentUtterance = null;
+
+        function pauseSpeech() {
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+                state.isSpeaking = false;
+                // 恢复到待机状态
+                setState('Idle');
+                showNotification('语音已暂停');
+            }
+        }
+
+        // Chat Functionality
+        async function sendMessage(message) {
+            if (!message.trim()) return;
+
+            // 用户输入时触发跳舞状态
+            setState('UserInput');
+
+            // Save to chat history
+            const timestamp = new Date().toLocaleString('zh-CN');
+            state.chatHistory.push({ role: 'user', content: message, timestamp });
+            localStorage.setItem('chatHistory', JSON.stringify(state.chatHistory));
+
+            // Add user message
+            const chatMessages = document.getElementById('chat-messages');
+            const userBubble = document.createElement('div');
+            userBubble.className = 'chat-bubble flex justify-end';
+            userBubble.innerHTML = `
+                <div class="glass-effect rounded-lg p-3 max-w-xs bg-green-500/80">
+                    <p class="text-white text-sm">${message}</p>
+                    <p class="text-white/70 text-xs mt-1">${timestamp}</p>
+                </div>
+            `;
+            chatMessages.appendChild(userBubble);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            state.chatCount++;
+            updateStatusPanel();
+            playSound('message');
+
+            // Show typing indicator - 思考时进入奔跑状态
+            setState('Thinking');
+            const typingBubble = document.createElement('div');
+            typingBubble.className = 'chat-bubble';
+            typingBubble.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span class="text-white text-xs font-bold">🌱</span>
+                    </div>
+                    <div class="glass-effect rounded-lg p-3">
+                        <div class="typing-indicator">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(typingBubble);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Get AI response
+            const startTime = performance.now();
+            const response = await sendToDeepSeek(message);
+            const endTime = performance.now();
+            state.responseTime = (endTime - startTime) / 1000;
+
+            // Remove typing indicator
+            typingBubble.remove();
+
+            // Analyze emotion
+            const emotion = await analyzeEmotion(message);
+            setState(emotion);
+
+            // 根据消息内容触发特定动作
+            if (message.toLowerCase().includes('hello') || message.includes('你好')) {
+                playAnimation('Wave');
+            } else if (message.toLowerCase().includes('yes') || message.includes('是的') || message.includes('对')) {
+                playAnimation('Yes');
+            } else if (message.toLowerCase().includes('no') || message.includes('不') || message.includes('否')) {
+                playAnimation('No');
+            } else if (message.toLowerCase().includes('thumbs up') || message.includes('点赞') || message.includes('好')) {
+                playAnimation('Thumbsup');
+            } else if (message.toLowerCase().includes('punch') || message.includes('拳击') || message.includes('打')) {
+                playAnimation('Punch');
+            } else if (message.toLowerCase().includes('walk') || message.includes('走')) {
+                playAnimation('Walking');
+            } else if (message.toLowerCase().includes('run') || message.includes('跑')) {
+                playAnimation('Running');
+            } else if (message.toLowerCase().includes('sit') || message.includes('坐')) {
+                playAnimation('Sitting');
+            } else if (message.toLowerCase().includes('stand') || message.includes('站')) {
+                playAnimation('Standing');
+            }
+
+            // 回复时设置状态
+            setState('Replying');
+
+            // Add AI response
+            const aiBubble = document.createElement('div');
+            aiBubble.className = 'chat-bubble';
+            aiBubble.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span class="text-white text-xs font-bold">🌱</span>
+                    </div>
+                    <div class="glass-effect rounded-lg p-3 max-w-xs">
+                        <p class="text-white text-sm">${response}</p>
+                        <p class="text-white/70 text-xs mt-1">${timestamp}</p>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(aiBubble);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            state.chatHistory.push({ role: 'assistant', content: response, timestamp });
+            localStorage.setItem('chatHistory', JSON.stringify(state.chatHistory));
+            updateStatusPanel();
+
+            // Speak response
+            speak(response);
+
+            // 回复完毕后进入待机状态
+            setTimeout(() => {
+                setState('Idle');
+            }, 2000); // 2秒后进入待机状态
+
+            // Trigger specific animations
+            if (message.toLowerCase().includes('hello') || message.includes('你好')) {
+                playAnimation('Wave');
+            }
+        }
+
+        // Load Chat History
+        function loadChatHistory() {
+            const history = localStorage.getItem('chatHistory');
+            if (history) {
+                state.chatHistory = JSON.parse(history);
+                const chatMessages = document.getElementById('chat-messages');
+                state.chatHistory.forEach(msg => {
+                    const bubble = document.createElement('div');
+                    bubble.className = `chat-bubble ${msg.role === 'user' ? 'flex justify-end' : ''}`;
+                    bubble.innerHTML = `
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span class="text-white text-xs font-bold">${msg.role === 'user' ? 'U' : '🌱'}</span>
+                            </div>
+                            <div class="glass-effect rounded-lg p-3 max-w-xs ${msg.role === 'user' ? 'bg-green-500/80' : ''}">
+                                <p class="text-white text-sm">${msg.content}</p>
+                                <p class="text-white/70 text-xs mt-1">${msg.timestamp}</p>
+                            </div>
+                        </div>
+                    `;
+                    chatMessages.appendChild(bubble);
+                });
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                state.chatCount = state.chatHistory.filter(msg => msg.role === 'user').length;
+                updateStatusPanel();
+            }
+        }
+
+        // Display History Modal
+        function showHistoryModal() {
+            const historyMessages = document.getElementById('history-messages');
+            historyMessages.innerHTML = '';
+            state.chatHistory.forEach((msg, idx) => {
+                const bubble = document.createElement('div');
+                bubble.className = `chat-bubble ${msg.role === 'user' ? 'flex justify-end' : ''}`;
+                bubble.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span class="text-white text-xs font-bold">${msg.role === 'user' ? 'U' : '🌱'}</span>
+                        </div>
+                        <div class="glass-effect rounded-lg p-3 max-w-xs ${msg.role === 'user' ? 'bg-green-500/80' : ''}">
+                            <p class="text-white text-sm">${msg.content}</p>
+                            <p class="text-white/70 text-xs mt-1">${msg.timestamp}</p>
+                            <div class="flex gap-2 mt-2">
+                                <button class="copy-btn bg-blue-400 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs" data-idx="${idx}">复制</button>
+                                <button class="resend-btn bg-green-400 hover:bg-green-600 text-white px-2 py-1 rounded text-xs" data-idx="${idx}">重发</button>
+                                <button class="delete-btn bg-red-400 hover:bg-red-600 text-white px-2 py-1 rounded text-xs" data-idx="${idx}">删除</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                historyMessages.appendChild(bubble);
+            });
+            // 按钮事件
+            historyMessages.querySelectorAll('.copy-btn').forEach(btn => {
+                btn.onclick = function() {
+                    const idx = this.getAttribute('data-idx');
+                    navigator.clipboard.writeText(state.chatHistory[idx].content);
+                    showNotification('已复制到剪贴板');
+                };
+            });
+            historyMessages.querySelectorAll('.resend-btn').forEach(btn => {
+                btn.onclick = function() {
+                    const idx = this.getAttribute('data-idx');
+                    sendMessage(state.chatHistory[idx].content);
+                };
+            });
+            historyMessages.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.onclick = function() {
+                    const idx = this.getAttribute('data-idx');
+                    state.chatHistory.splice(idx, 1);
+                    localStorage.setItem('chatHistory', JSON.stringify(state.chatHistory));
+                    showHistoryModal();
+                };
+            });
+            // 清空历史
+            document.getElementById('clear-history').onclick = function() {
+                if (confirm('确定要清空所有历史记录吗？')) {
+                    state.chatHistory = [];
+                    localStorage.removeItem('chatHistory');
+                    showHistoryModal();
+                }
+            };
+            state.historyModalVisible = true;
+            document.getElementById('history-modal').classList.remove('hidden');
+        }
+
+        // Update Role Display
+        function updateRoleDisplay() {
+            document.getElementById('app-title').textContent = `${state.roleName} - 智慧农场助手`;
+            document.getElementById('chat-header').textContent = `${state.roleName} - 智慧农场助手`;
+        }
+
+        // Apply User Settings
+        function applySettings() {
+            document.body.className = `min-h-screen ${state.theme} overflow-hidden`;
+            document.querySelector('.main-container').className = `main-container flex h-[calc(100vh-80px)] ${state.layout}-layout`;
+            document.getElementById('layout-select').value = state.layout;
+            document.getElementById('theme-select').value = state.theme;
+            document.getElementById('animation-speed').value = state.animationSpeed;
+            document.getElementById('tts-toggle').checked = state.ttsEnabled;
+            document.getElementById('role-name').value = state.roleName;
+            document.getElementById('model-select').value = state.currentModel;
+            document.getElementById('mouse-follow').checked = state.mouseFollow;
+            localStorage.setItem('settings', JSON.stringify({
+                layout: state.layout,
+                theme: state.theme,
+                animationSpeed: state.animationSpeed,
+                ttsEnabled: state.ttsEnabled,
+                roleName: state.roleName,
+                currentModel: state.currentModel,
+                mouseFollow: state.mouseFollow
+            }));
+            updateRoleDisplay();
+        }
+
+        // Load User Settings
+        function loadSettings() {
+            const settings = localStorage.getItem('settings');
+            if (settings) {
+                const parsed = JSON.parse(settings);
+                state.layout = parsed.layout || 'horizontal';
+                state.theme = parsed.theme || 'gradient-bg';
+                state.animationSpeed = parsed.animationSpeed || 1;
+                state.ttsEnabled = parsed.ttsEnabled || false;
+                state.roleName = parsed.roleName || '小艾';
+                state.currentModel = parsed.currentModel || 'xiaoai';
+                state.mouseFollow = parsed.mouseFollow !== undefined ? parsed.mouseFollow : true;
+            }
+            applySettings();
+        }
+
+        // Chat Panel Width Adjustment
+        function initDivider() {
+            const divider = document.getElementById('divider');
+            const chatPanel = document.getElementById('chat-panel');
+            let isDragging = false;
+
+            divider.addEventListener('mousedown', () => {
+                isDragging = true;
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging && window.innerWidth > 768) {
+                    const newWidth = window.innerWidth - e.clientX;
+                    if (newWidth >= 200 && newWidth <= 600) {
+                        chatPanel.style.width = `${newWidth}px`;
+                    }
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    localStorage.setItem('chatWidth', chatPanel.style.width);
+                    isDragging = false;
+                }
+            });
+
+            const savedWidth = localStorage.getItem('chatWidth');
+            if (savedWidth) {
+                chatPanel.style.width = savedWidth;
+            }
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Three.js
+            const { loadModel } = initThreeJS();
+
+            // Initialize Map
+            initMap();
+
+            // Initialize Speech Recognition
+            initSpeechRecognition();
+
+            // Initialize Divider
+            initDivider();
+
+            // Load Settings and Chat History
+            loadSettings();
+            loadChatHistory();
+
+            // Hide loading screen
+            setTimeout(() => {
+                document.getElementById('loading').classList.add('hidden');
+            }, 2000);
+
+            // Navigation Buttons
+            document.getElementById('location-btn').addEventListener('click', () => {
+                getCurrentLocation();
+            });
+
+            // Map Toggle
+            document.getElementById('map-toggle').addEventListener('click', () => {
+                const mapOverlay = document.getElementById('map-overlay');
+                state.mapVisible = !state.mapVisible;
+                if (state.mapVisible) {
+                    mapOverlay.classList.remove('hidden');
+                    document.getElementById('map-toggle').innerHTML = `
+                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 001.414-1.414L9.707 9.293V6z" clip-rule="evenodd"></path>
+                        </svg>
+                    `;
+                } else {
+                    mapOverlay.classList.add('hidden');
+                    document.getElementById('map-toggle').innerHTML = `
+                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M12 1.586l-4 4v12.828l4-4V1.586zM3.707 3.293A1 1 0 002 4v10a1 1 0 10.293.707L6 18.414V5.586L3.707 3.293zM17.707 5.293L14 1.586v12.828l2.293 2.293A1 1 0 0018 16V6a1 1 0 00-.293-.707z" clip-rule="evenodd"></path>
+                        </svg>
+                    `;
+                }
+            });
+
+            document.getElementById('refresh-btn').addEventListener('click', async () => {
+                const correctApiKey = "123666";
+
+                const enteredKey = prompt("请输入访问密钥以刷新数据库内容：");
+
+                if (!enteredKey || enteredKey.trim() !== correctApiKey) {
+                    showNotification("❌ 密钥错误，无法刷新数据库内容", 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/combined.txt');  // 确保路径正确
+                    const text = await response.text();
+
+                    // 将数据库内容保存到全局变量或 state 中
+                    databaseContent = text;
+
+                    // 设置标志，表示下一次调用 sendToDeepSeek 应该注入数据库内容
+                    state.shouldInjectDatabase = true;
+
+                    showNotification("✅ 数据库内容已刷新并将在下次对话中注入");
+                } catch (error) {
+                    console.error('数据库刷新失败:', error);
+                    showNotification("❌ 刷新数据库失败，请检查文件路径或网络", 'error');
+                }
+            });
+
+
+
+
+            // Close Map
+            document.getElementById('close-map').addEventListener('click', () => {
+                document.getElementById('map-overlay').classList.add('hidden');
+                state.mapVisible = false;
+                document.getElementById('map-toggle').innerHTML = `
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M12 1.586l-4 4v12.828l4-4V1.586zM3.707 3.293A1 1 0 002 4v10a1 1 0 10.293.707L6 18.414V5.586L3.707 3.293zM17.707 5.293L14 1.586v12.828l2.293 2.293A1 1 0 0018 16V6a1 1 0 00-.293-.707z" clip-rule="evenodd"></path>
+                    </svg>
+                `;
+            });
+
+            // Services Button
+            document.getElementById('services-btn').addEventListener('click', () => {
+                state.servicesModalVisible = !state.servicesModalVisible;
+                document.getElementById('services-modal').classList.toggle('hidden');
+            });
+
+            // Close Services Modal
+            document.getElementById('close-services').addEventListener('click', () => {
+                state.servicesModalVisible = false;
+                document.getElementById('services-modal').classList.add('hidden');
+            });
+
+            // Service Buttons
+            document.querySelectorAll('.service-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const service = btn.getAttribute('data-service');
+                    switch (service) {
+                        case 'ai-chat':
+                            if (!state.servicesModalVisible) {
+                                state.servicesModalVisible = true;
+                                document.getElementById('services-modal').classList.remove('hidden');
+                            } else {
+                                document.getElementById('services-modal').classList.add('hidden');
+                                state.servicesModalVisible = false;
+                            }
+                            break;
+                        case 'navigation':
+                            document.getElementById('map-overlay').classList.remove('hidden');
+                            state.mapVisible = true;
+                            document.getElementById('map-toggle').innerHTML = `
+                                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 001.414-1.414L9.707 9.293V6z" clip-rule="evenodd"></path>
+                                </svg>
+                            `;
+                            break;
+                        case 'email':
+                            const to = prompt('请输入收件人邮箱:');
+                            if (to) {
+                                const subject = prompt('请输入邮件主题:');
+                                if (subject) {
+                                    const body = prompt('请输入邮件内容:');
+                                    if (body) {
+                                        sendEmail(to, subject, body);
+                                        showNotification('邮件已发送');
+                                    }
+                                }
+                            }
+                            break;
+                        case 'settings':
+                            state.settingsModalVisible = true;
+                            document.getElementById('settings-modal').classList.remove('hidden');
+                            break;
+                        case 'system-status':
+                            showNotification('系统状态正常，所有服务运行正常');
+                            break;
+                    }
+                });
+            });
+
+            // Close Settings Modal
+            document.getElementById('close-settings').addEventListener('click', () => {
+                state.settingsModalVisible = false;
+                document.getElementById('settings-modal').classList.add('hidden');
+            });
+
+            // Save Settings
+            document.getElementById('save-settings').addEventListener('click', () => {
+                state.layout = document.getElementById('layout-select').value;
+                state.theme = document.getElementById('theme-select').value;
+                state.animationSpeed = parseFloat(document.getElementById('animation-speed').value);
+                state.ttsEnabled = document.getElementById('tts-toggle').checked;
+                state.roleName = document.getElementById('role-name').value;
+                state.currentModel = document.getElementById('model-select').value;
+                state.mouseFollow = document.getElementById('mouse-follow').checked;
+                applySettings();
+                showNotification('设置已保存');
+                loadModel(state.currentModel);
+                state.settingsModalVisible = false;
+                document.getElementById('settings-modal').classList.add('hidden');
+            });
+
+            // Quick Actions
+            document.querySelectorAll('.quick-action').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const action = btn.getAttribute('data-action');
+                    switch (action) {
+                        case 'navigation':
+                            document.getElementById('map-overlay').classList.remove('hidden');
+                            state.mapVisible = true;
+                            document.getElementById('map-toggle').innerHTML = `
+                                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 001.414-1.414L9.707 9.293V6z" clip-rule="evenodd"></path>
+                                </svg>
+                            `;
+                            break;
+                        case 'weather':
+                            if (state.currentPosition) {
+                                getWeather(state.currentPosition.lat, state.currentPosition.lng);
+                            } else {
+                                showNotification('请先获取位置信息', 'error');
+                            }
+                            break;
+                        case 'email':
+                            const to = prompt('请输入收件人邮箱:');
+                            if (to) {
+                                const subject = prompt('请输入邮件主题:');
+                                if (subject) {
+                                    const body = prompt('请输入邮件内容:');
+                                    if (body) {
+                                        sendEmail(to, subject, body);
+                                        showNotification('邮件已发送');
+                                    }
+                                }
+                            }
+                            break;
+                        case 'settings':
+                            state.settingsModalVisible = true;
+                            document.getElementById('settings-modal').classList.remove('hidden');
+                            break;
+                        case 'history':
+                            state.historyModalVisible = true;
+                            showHistoryModal();
+                            break;
+                    }
+                });
+            });
+
+            // Close History Modal
+            document.getElementById('close-history').addEventListener('click', () => {
+                state.historyModalVisible = false;
+                document.getElementById('history-modal').classList.add('hidden');
+            });
+
+            // Send Message
+            document.getElementById('send-btn').addEventListener('click', () => {
+                const message = document.getElementById('message-input').value;
+                sendMessage(message);
+                document.getElementById('message-input').value = '';
+            });
+
+            document.getElementById('message-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const message = document.getElementById('message-input').value;
+                    sendMessage(message);
+                    document.getElementById('message-input').value = '';
+                }
+            });
+
+            // Voice Recognition
+            document.getElementById('voice-btn').addEventListener('click', () => {
+                toggleVoiceRecognition();
+            });
+
+            // 更新右键菜单
+            const contextMenu = document.getElementById('context-menu');
+            contextMenu.innerHTML = `
+                <a href="#" data-action="wave">挥手动画</a>
+                <a href="#" data-action="idle">待机动画</a>
+                <a href="#" data-action="dance">跳舞动画</a>
+                <a href="#" data-action="walking">行走动画</a>
+                <a href="#" data-action="running">跑步动画</a>
+                <a href="#" data-action="sitting">坐下动画</a>
+                <a href="#" data-action="standing">站立动画</a>
+                <a href="#" data-action="yes">点头动作</a>
+                <a href="#" data-action="no">摇头动作</a>
+                <a href="#" data-action="punch">拳击动作</a>
+                <a href="#" data-action="thumbsup">点赞动作</a>
+                <a href="#" data-action="happy">开心表情</a>
+                <a href="#" data-action="sad">悲伤表情</a>
+                <a href="#" data-action="angry">生气表情</a>
+                <a href="#" data-action="surprised">惊讶表情</a>
+                <a href="#" data-action="neutral">中性表情</a>
+                <a href="#" data-action="reset">重置视角</a>
+            `;
+
+            // 右键菜单事件
+            document.querySelectorAll('#context-menu a').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const action = link.getAttribute('data-action');
+
+                    // 处理表情
+                    if (state.availableExpressions.includes(action)) {
+                        setExpression(action);
+                    }
+                    // 处理动画和动作
+                    else if (state.availableStates.includes(action) ||
+                             state.availableEmotes.includes(action) ||
+                             ['wave', 'idle', 'dance'].includes(action)) {
+                        // 首字母大写
+                        const animName = action.charAt(0).toUpperCase() + action.slice(1);
+                        playAnimation(animName);
+                    }
+                    // 重置视角
+                    else if (action === 'reset') {
+                        resetCamera();
+                    }
+
+                    document.getElementById('context-menu').style.display = 'none';
+                });
+            });
+
+            // Map Search
+            document.getElementById('poi-search').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const keyword = document.getElementById('poi-search').value;
+                    searchPOI(keyword);
+                }
+            });
+
+            // Navigation Actions
+            document.querySelectorAll('.nav-dropdown a').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const action = link.getAttribute('data-action');
+                    switch (action) {
+                        case 'current-location':
+                            getCurrentLocation();
+                            break;
+                        case 'search-poi':
+                            const keyword = prompt('请输入要搜索的地点:');
+                            if (keyword) {
+                                searchPOI(keyword);
+                            }
+                            break;
+                        case 'route-plan':
+                            const destination = prompt('请输入目的地:');
+                            if (destination && state.currentPosition) {
+                                planRoute(destination);
+                            } else {
+                                showNotification('请先获取当前位置或输入有效目的地', 'error');
+                            }
+                            break;
+                    }
+                });
+            });
+
+            // Set Initial Status
+            updateStatusPanel();
+        });
+
+        // 发送建议按钮事件
+        if (document.getElementById('send-suggestion')) {
+            document.getElementById('send-suggestion').addEventListener('click', () => {
+                const content = prompt('请输入您的建议：');
+                if (content) sendSuggestion(content);
+            });
+        }
+        if (document.getElementById('service-suggestion-btn')) {
+            document.getElementById('service-suggestion-btn').addEventListener('click', () => {
+                const content = prompt('请输入您的建议：');
+                if (content) sendSuggestion(content);
+            });
+        }
+
+        // 邮件服务改为发送建议
+        function sendSuggestion(content) {
+            window.open('mailto:2138277532@qq.com?subject=建议反馈&body=' + encodeURIComponent(content));
+            showNotification('已打开邮件客户端，请发送您的建议');
+        }
+    </script>
+</body>
+</html>

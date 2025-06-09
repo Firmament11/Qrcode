@@ -592,7 +592,7 @@
                         <button @click="closeProductDetail" class="bg-gray-200 text-gray-900 px-4 py-1.5 text-sm rounded-md hover:bg-gray-300 transition-colors duration-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600">
                             关闭
                         </button>
-                        <a :href="generateDetailPageUrl(selectedProduct.id)" target="_blank" class="bg-green-600 text-white px-4 py-1.5 text-sm rounded-md hover:bg-green-700 transition-colors duration-300 dark:bg-green-700 dark:hover:bg-green-800">
+                        <a :href="generateDetailPageUrl(selectedProduct.id)" class="bg-green-600 text-white px-4 py-1.5 text-sm rounded-md hover:bg-green-700 transition-colors duration-300 dark:bg-green-700 dark:hover:bg-green-800">
                             查看完整溯源信息
                         </a>
                     </div>
@@ -712,196 +712,71 @@
                     }
                 },
                 processData(data) {
-                    // 模拟从 qrcodes.json 中提取产品数据的逻辑
-                    // 这里假设 qrcodes.json 格式为按周组织的产品数据
+                    // 从 qrcodes.json 中提取真实产品数据
                     this.allProducts = [];
 
-                    // 模拟产品数据
-                    const now = new Date();
-                    const oneMonthAgo = new Date(now);
-                    oneMonthAgo.setMonth(now.getMonth() - 1);
-
-                    // 模拟生成50个具体产品数据
-                    const productTypes = ['蔬菜', '水果', '粮食', '肉类', '水产', '蛋奶'];
-                    const regions = ['河南省', '山东省', '江苏省', '河北省', '山西省', '安徽省', '黑龙江省', '吉林省', '辽宁省', '湖北省'];
-
-                    // 更具体的产品名称
-                    const specificProducts = {
-                        '蔬菜': ['有机西红柿', '绿色菠菜', '无公害黄瓜', '有机胡萝卜', '生态白菜', '有机青椒', '绿色茄子', '有机土豆', '生态西红柿', '有机生菜'],
-                        '水果': ['有机苹果', '生态香蕉', '无公害橙子', '有机葡萄', '生态西瓜', '有机草莓', '绿色猕猴桃', '有机柚子', '生态梨', '有机蓝莓'],
-                        '粮食': ['五常大米', '有机小米', '东北黑土地大豆', '有机燕麦', '绿色玉米', '有机黑米', '生态红豆', '有机糙米', '有机高粱', '生态薏米'],
-                        '肉类': ['草饲牛肉', '有机猪肉', '放养鸡肉', '生态羊肉', '有机鸭肉', '绿色兔肉', '生态火鸡肉', '有机鹿肉', '山养猪肉', '生态牦牛肉'],
-                        '水产': ['生态草鱼', '有机虾', '绿色螃蟹', '有机鲈鱼', '生态鲤鱼', '有机贝类', '野生活鱼', '有机鳗鱼', '生态泥鳅', '有机河蚌'],
-                        '蛋奶': ['有机鸡蛋', '生态鸭蛋', '有机牛奶', '绿色羊奶', '有机奶酪', '生态鹅蛋', '有机酸奶', '生态鹌鹑蛋', '有机奶豆腐', '生态奶油']
-                    };
-
-                    // 营养成分数据库
-                    const nutritionDB = {
-                        '蔬菜': {
-                            '蛋白质': [0.7, 2.9],
-                            '脂肪': [0.1, 0.4],
-                            '碳水化合物': [2.9, 9.6],
-                            '膳食纤维': [0.5, 2.8],
-                            '维生素C': [2.2, 80.4],
-                            '钙': [10, 73],
-                            '铁': [0.3, 2.7]
-                        },
-                        '水果': {
-                            '蛋白质': [0.3, 1.1],
-                            '脂肪': [0.1, 0.4],
-                            '碳水化合物': [7.6, 22.8],
-                            '膳食纤维': [0.4, 2.6],
-                            '维生素C': [3.2, 58.8],
-                            '钙': [5, 40],
-                            '铁': [0.1, 0.4]
-                        },
-                        '粮食': {
-                            '蛋白质': [3.2, 16.9],
-                            '脂肪': [0.7, 6.9],
-                            '碳水化合物': [19.02, 77.8],
-                            '膳食纤维': [0.6, 12.2],
-                            '维生素C': [0, 6.8],
-                            '钙': [2, 54],
-                            '铁': [0.5, 4.7]
-                        },
-                        '肉类': {
-                            '蛋白质': [15.0, 22.0],
-                            '脂肪': [5.0, 30.0],
-                            '碳水化合物': [0, 1.0],
-                            '膳食纤维': [0, 0],
-                            '维生素C': [0, 0],
-                            '钙': [5, 20],
-                            '铁': [1.0, 3.5]
-                        },
-                        '水产': {
-                            '蛋白质': [15.0, 20.0],
-                            '脂肪': [0.5, 10.0],
-                            '碳水化合物': [0, 2.0],
-                            '膳食纤维': [0, 0],
-                            '维生素C': [0, 2.0],
-                            '钙': [20, 100],
-                            '铁': [0.5, 2.0]
-                        },
-                        '蛋奶': {
-                            '蛋白质': [3.0, 13.0],
-                            '脂肪': [3.0, 10.0],
-                            '碳水化合物': [0, 5.0],
-                            '膳食纤维': [0, 0],
-                            '维生素C': [0, 1.0],
-                            '钙': [50, 120],
-                            '铁': [0.2, 2.0]
+                    // 解析真实数据
+                    for (const weekKey in data) {
+                        const weekData = data[weekKey];
+                        if (weekData.products) {
+                            for (const productKey in weekData.products) {
+                                const product = weekData.products[productKey];
+                                
+                                // 解析产品详情URL中的数据
+                                try {
+                                    const urlParams = new URLSearchParams(product.productDataUrl.split('?')[1]);
+                                    const productDataStr = urlParams.get('data');
+                                    if (productDataStr) {
+                                        const productData = JSON.parse(decodeURIComponent(productDataStr));
+                                        
+                                        // 提取产品信息
+                                        const productInfo = {
+                                            id: product.productId,
+                                            name: productData.productName || product.productName,
+                                            type: this.categorizeProduct(productData.productName || product.productName),
+                                            region: productData.exactLocation?.region || productData.location || '未知地区',
+                                            plantingDate: productData.plantingDate || '',
+                                            harvestDate: productData.harvestDate || '',
+                                            batchNumber: productData.batchNumber || '',
+                                            contact: productData.contact || '',
+                                            isOrganic: this.isOrganicProduct(productData.productName || product.productName),
+                                            latitude: productData.exactLocation?.latitude || 0,
+                                            longitude: productData.exactLocation?.longitude || 0,
+                                            nutrition: this.parseNutritionValues(productData.nutritionValues),
+                                            farmingTech: this.getFarmingTech(productData.productName || product.productName),
+                                            createdAt: product.createdAt,
+                                            city: productData.exactLocation?.city || '',
+                                            district: productData.exactLocation?.district || '',
+                                            address: productData.exactLocation?.address || ''
+                                        };
+                                        
+                                        this.allProducts.push(productInfo);
+                                    }
+                                } catch (error) {
+                                    console.warn('解析产品数据失败:', error, product);
+                                    // 如果解析失败，使用基本信息
+                                    this.allProducts.push({
+                                        id: product.productId,
+                                        name: product.productName,
+                                        type: this.categorizeProduct(product.productName),
+                                        region: '未知地区',
+                                        plantingDate: '',
+                                        harvestDate: '',
+                                        batchNumber: '',
+                                        contact: '',
+                                        isOrganic: false,
+                                        latitude: 0,
+                                        longitude: 0,
+                                        nutrition: {},
+                                        farmingTech: '传统种植',
+                                        createdAt: product.createdAt,
+                                        city: '',
+                                        district: '',
+                                        address: ''
+                                    });
+                                }
+                            }
                         }
-                    };
-
-                    // 生成随机范围内的数值
-                    const randomInRange = (min, max) => {
-                        return (Math.random() * (max - min) + min).toFixed(2);
-                    };
-
-                    for (let i = 1; i <= 50; i++) {
-                        const typeIndex = Math.floor(Math.random() * productTypes.length);
-                        const type = productTypes[typeIndex];
-                        const isOrganic = Math.random() > 0.5;
-
-                        // 选择具体产品名称
-                        const productList = specificProducts[type];
-                        const productName = productList[Math.floor(Math.random() * productList.length)];
-
-                        // 生成合理的种植和收获日期
-                        const plantingDate = new Date(
-                            now.getFullYear(),
-                            now.getMonth() - Math.floor(Math.random() * 6) - 1, // 1-6个月前种植
-                            Math.floor(Math.random() * 28) + 1
-                        );
-
-                        // 收获日期在种植日期之后的1-3个月
-                        const harvestDate = new Date(plantingDate);
-                        harvestDate.setMonth(plantingDate.getMonth() + Math.floor(Math.random() * 3) + 1);
-
-                        // 根据产品类型生成合理的营养成分
-                        const nutrition = {};
-                        const typeNutrition = nutritionDB[type];
-
-                        for (const [nutrient, range] of Object.entries(typeNutrition)) {
-                            nutrition[nutrient] = randomInRange(range[0], range[1]);
-                        }
-
-                        // 生成地理位置 - 根据地区设置合理的经纬度范围
-                        const regionIndex = Math.floor(Math.random() * regions.length);
-                        const region = regions[regionIndex];
-
-                        // 根据地区设置大致的经纬度范围
-                        let latitude, longitude;
-                        switch(region) {
-                            case '河南省':
-                                latitude = randomInRange(32.0, 36.0);
-                                longitude = randomInRange(110.0, 116.0);
-                                break;
-                            case '山东省':
-                                latitude = randomInRange(34.0, 38.0);
-                                longitude = randomInRange(115.0, 122.0);
-                                break;
-                            case '江苏省':
-                                latitude = randomInRange(30.0, 35.0);
-                                longitude = randomInRange(116.0, 121.0);
-                                break;
-                            case '河北省':
-                                latitude = randomInRange(36.0, 42.0);
-                                longitude = randomInRange(113.0, 119.0);
-                                break;
-                            case '山西省':
-                                latitude = randomInRange(34.0, 40.0);
-                                longitude = randomInRange(110.0, 114.0);
-                                break;
-                            case '安徽省':
-                                latitude = randomInRange(29.0, 34.0);
-                                longitude = randomInRange(115.0, 119.0);
-                                break;
-                            case '黑龙江省':
-                                latitude = randomInRange(43.0, 53.0);
-                                longitude = randomInRange(121.0, 135.0);
-                                break;
-                            case '吉林省':
-                                latitude = randomInRange(41.0, 46.0);
-                                longitude = randomInRange(122.0, 131.0);
-                                break;
-                            case '辽宁省':
-                                latitude = randomInRange(38.0, 43.0);
-                                longitude = randomInRange(118.0, 125.0);
-                                break;
-                            case '湖北省':
-                                latitude = randomInRange(29.0, 33.0);
-                                longitude = randomInRange(108.0, 116.0);
-                                break;
-                            default:
-                                latitude = 35 + (Math.random() * 5 - 2.5);
-                                longitude = 115 + (Math.random() * 5 - 2.5);
-                        }
-
-                        // 添加农业生产技术信息
-                        const farmingTech = type === '蔬菜' || type === '水果'
-                            ? '智能灌溉'
-                            : type === '粮食'
-                                ? '精准施肥'
-                                : type === '肉类' || type === '蛋奶'
-                                    ? '生态养殖'
-                                    : '深海养殖';
-
-                        this.allProducts.push({
-                            id: `prod-${i}`,
-                            name: productName,
-                            type: type,
-                            region: region,
-                            plantingDate: plantingDate.toISOString().split('T')[0],
-                            harvestDate: harvestDate.toISOString().split('T')[0],
-                            batchNumber: `B${Math.floor(Math.random() * 10000)}`,
-                            contact: `1${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-                            isOrganic: isOrganic,
-                            latitude: parseFloat(latitude),
-                            longitude: parseFloat(longitude),
-                            nutrition: nutrition,
-                            farmingTech: farmingTech
-                        });
                     }
 
                     // 计算统计数据
@@ -909,6 +784,65 @@
 
                     // 应用初始筛选
                     this.applyFilters();
+                },
+                // 产品分类函数
+                categorizeProduct(productName) {
+                    const name = productName.toLowerCase();
+                    if (name.includes('米') || name.includes('麦') || name.includes('豆') || name.includes('玉米') || name.includes('高粱')) {
+                        return '粮食';
+                    } else if (name.includes('西红柿') || name.includes('黄瓜') || name.includes('白菜') || name.includes('菠菜') || name.includes('胡萝卜') || name.includes('青椒') || name.includes('茄子') || name.includes('土豆') || name.includes('生菜')) {
+                        return '蔬菜';
+                    } else if (name.includes('苹果') || name.includes('香蕉') || name.includes('橙') || name.includes('葡萄') || name.includes('西瓜') || name.includes('草莓') || name.includes('猕猴桃') || name.includes('柚子') || name.includes('梨') || name.includes('蓝莓')) {
+                        return '水果';
+                    } else if (name.includes('牛肉') || name.includes('猪肉') || name.includes('鸡肉') || name.includes('羊肉') || name.includes('鸭肉') || name.includes('兔肉')) {
+                        return '肉类';
+                    } else if (name.includes('鱼') || name.includes('虾') || name.includes('蟹') || name.includes('贝') || name.includes('鳗') || name.includes('泥鳅')) {
+                        return '水产';
+                    } else if (name.includes('蛋') || name.includes('奶') || name.includes('酸奶') || name.includes('奶酪')) {
+                        return '蛋奶';
+                    } else {
+                        return '其他';
+                    }
+                },
+                // 判断是否为有机产品
+                isOrganicProduct(productName) {
+                    const name = productName.toLowerCase();
+                    return name.includes('有机') || name.includes('生态') || name.includes('绿色') || name.includes('无公害');
+                },
+                // 解析营养值
+                parseNutritionValues(nutritionValues) {
+                    if (!nutritionValues || !Array.isArray(nutritionValues)) {
+                        return {};
+                    }
+                    const nutritionLabels = ['蛋白质', '脂肪', '碳水化合物', '膳食纤维', '维生素C', '钙', '铁'];
+                    const nutrition = {};
+                    nutritionValues.forEach((value, index) => {
+                        if (index < nutritionLabels.length && value !== undefined && value !== '') {
+                            nutrition[nutritionLabels[index]] = parseFloat(value) || 0;
+                        }
+                    });
+                    return nutrition;
+                },
+                // 获取农业技术
+                getFarmingTech(productName) {
+                    const type = this.categorizeProduct(productName);
+                    switch (type) {
+                        case '蔬菜':
+                        case '水果':
+                            return '智能灌溉';
+                        case '粮食':
+                            return '精准施肥';
+                        case '肉类':
+                        case '蛋奶':
+                            return '生态养殖';
+                        case '水产':
+                            return '深海养殖';
+                        default:
+                            return '传统种植';
+                    }
+                },
+
+
                 },
                 calculateStats() {
                     // 计算产品类型分布

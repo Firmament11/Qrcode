@@ -4,6 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智慧农场农产品溯源系统</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="基于二维码的农产品溯源系统，提供完整的生产、流通和销售过程追溯功能">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="农产品溯源">
+    <meta name="msapplication-TileColor" content="#4CAF50">
+    <meta name="msapplication-config" content="/browserconfig.xml">
+    
+    <!-- PWA Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/logo.png">
+    <link rel="mask-icon" href="/logo.png" color="#4CAF50">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
@@ -113,8 +131,8 @@
                 <div class="flex space-x-2 md:space-x-4 text-sm md:text-base">
                     <a href="#" class="text-green-600 hover:text-green-800 px-2 py-1">首页</a>
                     <a href="#" class="text-green-600 hover:text-green-800 px-2 py-1">关于我们</a>
-                    <a href="analysis.html" target="_blank" class="text-green-600 hover:text-green-800 px-2 py-1">数据分析</a>
-                    <a href="verify.html" target="_blank" class="text-green-600 hover:text-green-800 px-2 py-1">溯源验证</a>
+                    <a href="analysis.html" class="text-green-600 hover:text-green-800 px-2 py-1">数据分析</a>
+                    <a href="verify.html" class="text-green-600 hover:text-green-800 px-2 py-1">溯源验证</a>
                 </div>
             </div>
         </nav>
@@ -385,7 +403,7 @@
                             </svg>
                             下载二维码
                         </button>
-                        <a :href="detailPageUrl" target="_blank" class="inline-block bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors duration-300">
+                        <a :href="detailPageUrl" class="inline-block bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors duration-300">
                             查看详情页
                         </a>
                     </div>
@@ -1314,6 +1332,116 @@
                 }
             }
         });
+        
+        // PWA Service Worker 注册
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker 注册成功:', registration.scope);
+                        
+                        // 检查更新
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // 新版本可用，提示用户刷新
+                                    if (confirm('发现新版本，是否立即更新？')) {
+                                        window.location.reload();
+                                    }
+                                }
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.log('Service Worker 注册失败:', error);
+                    });
+            });
+        }
+        
+        // PWA 安装提示
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // 阻止默认的安装提示
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // 显示自定义安装按钮
+            showInstallButton();
+        });
+        
+        function showInstallButton() {
+            // 创建安装按钮
+            const installButton = document.createElement('button');
+            installButton.innerHTML = '📱 安装应用';
+            installButton.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-green-700 transition-colors z-50';
+            installButton.style.display = 'block';
+            
+            installButton.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    // 显示安装提示
+                    deferredPrompt.prompt();
+                    
+                    // 等待用户响应
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log(`用户选择: ${outcome}`);
+                    
+                    if (outcome === 'accepted') {
+                        console.log('用户接受了安装');
+                    } else {
+                        console.log('用户拒绝了安装');
+                    }
+                    
+                    // 清除保存的事件
+                    deferredPrompt = null;
+                    installButton.remove();
+                }
+            });
+            
+            document.body.appendChild(installButton);
+            
+            // 5秒后自动隐藏按钮
+            setTimeout(() => {
+                if (installButton.parentNode) {
+                    installButton.style.opacity = '0.7';
+                }
+            }, 5000);
+        }
+        
+        // 监听应用安装事件
+        window.addEventListener('appinstalled', (evt) => {
+            console.log('应用已安装');
+            // 可以在这里添加安装成功的提示或统计
+        });
+        
+        // 离线状态检测
+        window.addEventListener('online', () => {
+            console.log('网络已连接');
+            // 可以在这里添加网络恢复的提示
+            const offlineIndicator = document.getElementById('offline-indicator');
+            if (offlineIndicator) {
+                offlineIndicator.remove();
+            }
+        });
+        
+        window.addEventListener('offline', () => {
+            console.log('网络已断开');
+            // 显示离线提示
+            showOfflineIndicator();
+        });
+        
+        function showOfflineIndicator() {
+            // 避免重复创建
+            if (document.getElementById('offline-indicator')) {
+                return;
+            }
+            
+            const indicator = document.createElement('div');
+            indicator.id = 'offline-indicator';
+            indicator.innerHTML = '🔌 当前处于离线状态，部分功能可能受限';
+            indicator.className = 'fixed top-0 left-0 right-0 bg-yellow-500 text-white text-center py-2 z-50';
+            document.body.appendChild(indicator);
+        }
     </script>
 </body>
 </html>

@@ -4,288 +4,387 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>农产品溯源详情</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="农产品详细溯源信息，包含种植、收获、营养成分等完整信息">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="产品详情">
+    
+    <!-- PWA Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/logo.png">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <!-- 引入高德地图API -->
     <script src="https://webapi.amap.com/loader.js"></script>
     <style>
-        .fade-in {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        .bg-pattern {
-            background-color: #f0f8f0;
-            background-image: linear-gradient(rgba(144, 238, 144, 0.1) 1px, transparent 1px),
-                            linear-gradient(90deg, rgba(144, 238, 144, 0.1) 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
-        .certificate {
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="%232c8c3c" stroke-width="2" stroke-dasharray="5,5"/><path d="M30,50 L45,65 L70,35" fill="none" stroke="%232c8c3c" stroke-width="3"/></svg>');
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: 100px 100px;
-        }
-        .plant-icon {
-            width: 100px;
-            height: 100px;
-            margin: 0 auto;
-        }
-        .plant-icon svg {
-            width: 100%;
-            height: 100%;
-        }
-        .plant-icon rect {
-            fill: #4CAF50;
-        }
-        .plant-icon path {
-            fill: #2E7D32;
-        }
-        .timeline {
-            position: relative;
-            padding-left: 30px;
-        }
-        .timeline:before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 2px;
-            height: 100%;
-            background-color: #E0E0E0;
-        }
-        .timeline-item {
-            position: relative;
-            margin-bottom: 20px;
-        }
-        .timeline-dot {
-            position: absolute;
-            left: -30px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background-color: #4CAF50;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 12px;
-            z-index: 1;
-        }
-        .timeline-content {
-            background-color: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+body {
+    font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f8f5;
+}
 
-        /* 优化后的动画样式 */
-        .animate-grow {
-            animation: grow 4s forwards;
-        }
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px;
+}
 
-        @keyframes grow {
-            0% {
-                .seed {
-                    opacity: 0;
-                }
-                .stem {
-                    height: 0;
-                    y: 80;
-                }
-                .leaf {
-                    opacity: 0;
-                }
-                .flower {
-                    r: 0;
-                }
-                .fruit {
-                    r: 0;
-                }
-            }
-            25% {
-                .seed {
-                    opacity: 1;
-                }
-            }
-            50% {
-                .stem {
-                    height: 50;
-                    y: 30;
-                }
-            }
-            60% {
-                .leaf1, .leaf2 {
-                    opacity: 1;
-                }
-            }
-            70% {
-                .leaf3, .leaf4 {
-                    opacity: 1;
-                }
-            }
-            85% {
-                .flower {
-                    r: 10;
-                }
-            }
-            100% {
-                .fruit {
-                    r: 8;
-                }
-            }
-        }
+.card {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
 
-        /* 视频样式 */
-        .video-container {
-            position: relative;
-            width: 100%;
+.card-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.plant-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.info-item {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+}
+
+.info-label {
+    width: 100px;
+    font-weight: 500;
+    color: #666;
+}
+
+.info-value {
+    flex: 1;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 20px 0 15px;
+    color: #2c8c3c;
+}
+
+.paragrah-style {
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-item {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.05);
+}
+
+.detail-title {
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.detail-content {
+    color: #555;
+    line-height: 1.6;
+}
+
+.next-section-btn {
+    align-self: flex-end;
+    background-color: #2c8c3c;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    margin-top: 10px;
+    transition: background-color 0.3s;
+}
+
+.next-section-btn:hover {
+    background-color: #24712a;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.data-table th, .data-table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.data-table th {
+    background-color: rgba(44, 140, 60, 0.1);
+    color: #2c8c3c;
+    font-weight: 500;
+}
+
+.video-container {
+    margin: 20px 0;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.video-container iframe {
+    width: 100%;
+    height: 300px;
+    border: none;
+}
+
+.certificate-logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 60px;
+    background-color: rgba(44, 140, 60, 0.05);
+    margin-top: 15px;
+}
+
+.certificate-logo img {
+    height: 40px;
+    filter: brightness(0) invert(0.7);
+}
+
+.section-container {
+    min-height: 600px;
+}
+
+.nutrition-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.nutrition-item {
+    background-color: rgba(233, 245, 233, 0.5);
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 3px solid #2c8c3c;
+}
+
+.nutrition-item-title {
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.nutrition-item-value {
+    color: #2c8c3c;
+    font-weight: 500;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.bg-pattern {
+    background-color: #f0f8f0;
+    background-image: linear-gradient(rgba(144, 238, 144, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(144, 238, 144, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+.certificate {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="%232c8c3c" stroke-width="2" stroke-dasharray="5,5"/><path d="M30,50 L45,65 L70,35" fill="none" stroke="%232c8c3c" stroke-width="3"/></svg>');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100px 100px;
+}
+
+.plant-icon {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto;
+}
+
+.plant-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.plant-icon rect {
+    fill: #4CAF50;
+}
+
+.plant-icon path {
+    fill: #2E7D32;
+}
+
+.video-container {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%;
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.map-container {
+    width: 100%;
+    height: 250px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.decoration {
+    position: fixed;
+    opacity: 0.1;
+}
+
+.leaf-decoration {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+}
+
+.leaf-1 {
+    top: 10%;
+    right: 5%;
+    transform: rotate(20deg);
+}
+
+.leaf-2 {
+    bottom: 20%;
+    left: 5%;
+    transform: rotate(-15deg);
+}
+
+.grass-decoration {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 50px;
+    background-image: linear-gradient(rgba(76, 175, 80, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(76, 175, 80, 0.1) 1px, transparent 1px);
+    background-size: 10px 10px;
+}
+
+.sun-decoration {
+    position: absolute;
+    top: 5%;
+    left: 5%;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle, rgba(255,215,0,0.3) 0%, rgba(255,215,0,0) 70%);
+}
+
+/* 动画样式 */
+.animate-grow {
+    animation: grow 4s forwards;
+}
+
+@keyframes grow {
+    0% {
+        .seed {
+            opacity: 0;
+        }
+        .stem {
             height: 0;
-            padding-bottom: 56.25%; /* 16:9 比例 */
-            overflow: hidden;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            y: 80;
         }
-
-        .video-container iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: none;
+        .leaf {
+            opacity: 0;
         }
-
-        .video-container video {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        .flower {
+            r: 0;
         }
-
-        .play-button {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.5);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            opacity: 0.8;
-            transition: opacity 0.3s;
+        .fruit {
+            r: 0;
         }
-
-        .play-button:hover {
+    }
+    25% {
+        .seed {
             opacity: 1;
         }
-
-        .play-button svg {
-            width: 24px;
-            height: 24px;
+    }
+    50% {
+        .stem {
+            height: 50;
+            y: 30;
         }
-
-        .fullscreen-button {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            background-color: rgba(0, 0, 0, 0.5);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            opacity: 0.8;
-            transition: opacity 0.3s;
-        }
-
-        .fullscreen-button:hover {
+    }
+    60% {
+        .leaf1, .leaf2 {
             opacity: 1;
         }
-
-        /* 地图样式 */
-        .map-container {
-            width: 100%;
-            height: 250px;
-            border-radius: 8px;
-            overflow: hidden;
+    }
+    70% {
+        .leaf3, .leaf4 {
+            opacity: 1;
         }
-
-        /* 响应式调整 */
-        @media (max-width: 768px) {
-            .grid-cols-2 {
-                grid-template-columns: 1fr;
-            }
-            
-            .video-container {
-                padding-bottom: 75%; /* 4:3 比例更适合手机 */
-            }
-            
-            .map-container {
-                height: 200px;
-            }
+    }
+    85% {
+        .flower {
+            r: 10;
         }
-
-        /* 装饰元素 */
-        .decoration {
-            position: fixed;
-            opacity: 0.1;
+    }
+    100% {
+        .fruit {
+            r: 8;
         }
+    }
+}
 
-        .leaf-decoration {
-            position: absolute;
-            width: 100px;
-            height: 100px;
-        }
+@media (max-width: 768px) {
+    .grid-cols-2 {
+        grid-template-columns: 1fr;
+    }
 
-        .leaf-1 {
-            top: 10%;
-            right: 5%;
-            transform: rotate(20deg);
-        }
+    .video-container {
+        padding-bottom: 75%;
+    }
 
-        .leaf-2 {
-            bottom: 20%;
-            left: 5%;
-            transform: rotate(-15deg);
-        }
+    .map-container {
+        height: 200px;
+    }
 
-        .grass-decoration {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            height: 50px;
-            background-image: linear-gradient(rgba(76, 175, 80, 0.1) 1px, transparent 1px),
-                            linear-gradient(90deg, rgba(76, 175, 80, 0.1) 1px, transparent 1px);
-            background-size: 10px 10px;
-        }
-
-        .sun-decoration {
-            position: absolute;
-            top: 5%;
-            left: 5%;
-            width: 60px;
-            height: 60px;
-            background: radial-gradient(circle, rgba(255,215,0,0.3) 0%, rgba(255,215,0,0) 70%);
-        }
-    </style>
+    .nutrition-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 </head>
 <body class="bg-gray-50">
+    <body class="bg-gray-50">
     <!-- 装饰元素 -->
     <div class="decoration sun-decoration"></div>
     <div class="decoration leaf-decoration leaf-1">
@@ -309,6 +408,7 @@
                 </div>
                 <div class="flex space-x-4">
                     <button @click="copyProductInfoAndRedirect" class="text-green-600 hover:text-green-800">唤起AI</button>
+                    <a href="ai.html" class="text-green-600 hover:text-green-800">智慧农场助手</a>
                     <a href="hello.html" class="text-green-600 hover:text-green-800">进入首页</a>
                 </div>
             </div>
@@ -323,48 +423,60 @@
                         <h2 class="text-2xl font-bold text-green-700">农产品溯源信息</h2>
                         <div class="certificate w-20 h-20"></div>
                     </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <!-- 产品基本信息 -->
-                        <div class="space-y-6 fade-in">
-                            <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
-                                <h3 class="text-lg font-semibold text-green-700 mb-3">产品基本信息</h3>
-                                <div class="space-y-2">
-                                    <p class="flex justify-between">
-                                        <span class="font-medium text-gray-600">产品名称:</span>
-                                        <span class="text-gray-800">{{ productInfo.productName }}</span>
-                                    </p>
-                                    <p v-if="productInfo.location" class="flex justify-between">
-                                        <span class="font-medium text-gray-600">种植地点:</span>
-                                        <span class="text-gray-800">{{ productInfo.location }}</span>
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
-                                <h3 class="text-lg font-semibold text-blue-700 mb-3">时间信息</h3>
-                                <div class="space-y-2">
-                                    <p v-if="productInfo.plantingDate" class="flex justify-between">
-                                        <span class="font-medium text-gray-600">种植时间:</span>
-                                        <span class="text-gray-800">{{ formatDate(productInfo.plantingDate) }}</span>
-                                    </p>
-                                    <p v-if="productInfo.harvestDate" class="flex justify-between">
-                                        <span class="font-medium text-gray-600">收获时间:</span>
-                                        <span class="text-gray-800">{{ formatDate(productInfo.harvestDate) }}</span>
-                                    </p>
-                                    <p v-if="productInfo.harvestDate && daysAfterHarvest > 0" class="flex justify-between">
-                                        <span class="font-medium text-gray-600">已收获天数:</span>
-                                        <span class="text-gray-800">{{ daysAfterHarvest }} 天</span>
-                                    </p>
-                                </div>
+
+                    <div class="space-y-6 fade-in">
+                        <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500 mb-4">
+                            <h3 class="text-lg font-semibold text-green-700 mb-3">产品基本信息</h3>
+                            <div class="space-y-2">
+                                <p class="flex justify-between">
+                                    <span class="font-medium text-gray-600">产品名称:</span>
+                                    <span class="text-gray-800">{{ productInfo.productName }}</span>
+                                </p>
+                                <p v-if="productInfo.location" class="flex justify-between">
+                                    <span class="font-medium text-gray-600">种植地点:</span>
+                                    <span class="text-gray-800">{{ productInfo.location }}</span>
+                                </p>
+                                <p v-if="productInfo.plantingDate" class="flex justify-between">
+                                    <span class="font-medium text-gray-600">种植时间:</span>
+                                    <span class="text-gray-800">{{ formatDate(productInfo.plantingDate) }}</span>
+                                </p>
+                                <p v-if="productInfo.harvestDate" class="flex justify-between">
+                                    <span class="font-medium text-gray-600">收获时间:</span>
+                                    <span class="text-gray-800">{{ formatDate(productInfo.harvestDate) }}</span>
+                                </p>
+                                <p v-if="productInfo.harvestDate && daysAfterHarvest > 0" class="flex justify-between">
+                                    <span class="font-medium text-gray-600">已收获天数:</span>
+                                    <span class="text-gray-800">{{ daysAfterHarvest }} 天</span>
+                                </p>
                             </div>
                         </div>
-                        
+
                         <!-- 种植详情 -->
                         <div class="space-y-6 fade-in">
                             <div class="bg-white p-4 rounded-lg shadow mb-4">
                                 <h3 class="text-lg font-semibold text-gray-700 mb-3">营养成分分析</h3>
-                                <canvas id="nutritionChart" height="200"></canvas>
+                                <div class="nutrition-grid">
+                                    <div class="nutrition-item">
+                                        <div class="nutrition-item-title">蛋白质</div>
+                                        <div class="nutrition-item-value">1.2g/100g</div>
+                                    </div>
+                                    <div class="nutrition-item">
+                                        <div class="nutrition-item-title">碳水化合物</div>
+                                        <div class="nutrition-item-value">3.9g/100g</div>
+                                    </div>
+                                    <div class="nutrition-item">
+                                        <div class="nutrition-item-title">维生素C</div>
+                                        <div class="nutrition-item-value">19mg/100g</div>
+                                    </div>
+                                    <div class="nutrition-item">
+                                        <div class="nutrition-item-title">钾元素</div>
+                                        <div class="nutrition-item-value">237mg/100g</div>
+                                    </div>
+                                    <div class="nutrition-item">
+                                        <div class="nutrition-item-title">膳食纤维</div>
+                                        <div class="nutrition-item-value">1.5g/100g</div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="bg-white p-4 rounded-lg shadow mb-4">
                                 <h3 class="text-lg font-semibold text-gray-700 mb-3">种植过程时间线</h3>
@@ -391,13 +503,12 @@
                                 <h3 class="text-lg font-semibold text-gray-700 mb-3">产品展示视频</h3>
                                 <div v-if="productInfo.videoUrl" class="video-container">
                                     <iframe ref="videoIframe" :src="videoEmbedUrl" frameborder="0" allowfullscreen></iframe>
-                                    
                                 </div>
                                 <div v-else class="video-container">
                                     <iframe src="https://player.bilibili.com/player.html?bvid=BV16G411y77W&high_quality=1&danmaku=0" frameborder="0" allowfullscreen></iframe>
                                 </div>
                             </div>
-                            
+
                             <!-- 精确位置地图 -->
                             <div v-if="productInfo.exactLocation" class="mt-4">
                                 <h3 class="text-lg font-semibold text-gray-700 mb-3">精确种植位置</h3>
@@ -418,15 +529,56 @@
                                 <h3 class="text-lg font-semibold text-yellow-700 mb-3">施肥记录</h3>
                                 <p class="text-gray-700 whitespace-pre-line">{{ productInfo.fertilizer }}</p>
                             </div>
-                            
+
                             <div v-if="productInfo.pesticide" class="bg-red-50 p-4 rounded-lg border-l-4 border-red-500">
                                 <h3 class="text-lg font-semibold text-red-700 mb-3">农药使用</h3>
                                 <p class="text-gray-700 whitespace-pre-line">{{ productInfo.pesticide }}</p>
                             </div>
+
+                            <!-- 化肥使用记录展示 -->
+                            <div v-if="productInfo.fertilizerRecords && productInfo.fertilizerRecords.length" class="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500 mb-4">
+                                <h3 class="text-lg font-semibold text-yellow-700 mb-3">化肥使用记录</h3>
+                                <table class="w-full text-left mb-4">
+                                    <thead>
+                                        <tr>
+                                            <th class="px-2 py-1">日期</th>
+                                            <th class="px-2 py-1">类型</th>
+                                            <th class="px-2 py-1">用量(kg)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(item, idx) in productInfo.fertilizerRecords" :key="'fertilizer-'+idx">
+                                            <td class="px-2 py-1">{{ formatDate(item.date) }}</td>
+                                            <td class="px-2 py-1">{{ item.type }}</td>
+                                            <td class="px-2 py-1">{{ item.amount }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div id="fertilizer-chart" style="width:100%;height:300px;"></div>
+                            </div>
+                            <!-- 浇水记录展示 -->
+                            <div v-if="productInfo.wateringRecords && productInfo.wateringRecords.length" class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400 mb-4">
+                                <h3 class="text-lg font-semibold text-blue-700 mb-3">浇水记录</h3>
+                                <table class="w-full text-left mb-4">
+                                    <thead>
+                                        <tr>
+                                            <th class="px-2 py-1">日期</th>
+                                            <th class="px-2 py-1">用水量(L)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(item, idx) in productInfo.wateringRecords" :key="'watering-'+idx">
+                                            <td class="px-2 py-1">{{ formatDate(item.date) }}</td>
+                                            <td class="px-2 py-1">{{ item.amount }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div id="watering-chart" style="width:100%;height:300px;"></div>
+                            </div>
                         </div>
                     </div>
 
-                    
+
                     <!-- 公司信息 -->
                     <div class="mt-10 p-6 bg-blue-700 text-white rounded-lg shadow-lg fade-in">
                         <h3 class="text-xl font-bold mb-4">生产企业信息</h3>
@@ -442,7 +594,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- 加载中或错误提示 -->
                 <div v-else class="bg-white rounded-lg shadow-md p-8 text-center">
                     <div v-if="loading" class="py-10">
@@ -484,357 +636,420 @@
         </footer>
     </div>
 
-    <script>
-        new Vue({
-            el: '#app',
-            data: {
-                productInfo: null,
-                loading: true,
-                nutritionChart: null,
-                detailMap: null,
-                detailMarker: null,
-                defaultVideoUrl: 'https://www.bilibili.com/video/BV16G411y77W/?share_source=copy_web&vd_source=5e78d91e42090a493ed7ddf7f5f3b755'
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script src="https://webapi.amap.com/loader.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data: {
+            productInfo: null,
+            loading: true,
+            nutritionChart: null,
+            detailMap: null,
+            detailMarker: null,
+            defaultVideoUrl: 'https://www.bilibili.com/video/BV16G411y77W/?share_source=copy_web&vd_source=5e78d91e0a493ed7ddf7f5f3b755',
+            batchFertilizerRecords: {
+                'A001': [
+                    { date: '2024-03-01', type: '复合肥', amount: 10 },
+                    { date: '2024-03-15', type: '尿素', amount: 8 },
+                    { date: '2024-04-01', type: '磷肥', amount: 6 }
+                ],
+                'B002': [
+                    { date: '2024-02-20', type: '有机肥', amount: 12 },
+                    { date: '2024-03-10', type: '钾肥', amount: 7 }
+                ]
             },
-            computed: {
-                // 获取视频嵌入URL
-                videoEmbedUrl() {
-                    if (!this.productInfo || !this.productInfo.videoUrl) return '';
-                    
-                    let url = this.productInfo.videoUrl;
-                    
-                    // 处理B站视频
-                    if (url.includes('bilibili.com')) {
-                        // 提取BV号
-                        const bvMatch = url.match(/BV\w+/);
-                        if (bvMatch) {
-                            return `https://player.bilibili.com/player.html?bvid=${bvMatch[0]}&high_quality=1&danmaku=0`;
+            batchWateringRecords: {
+                'A001': [
+                    { date: '2024-03-02', amount: 200 },
+                    { date: '2024-03-16', amount: 180 },
+                    { date: '2024-04-02', amount: 220 }
+                ],
+                'B002': [
+                    { date: '2024-02-21', amount: 150 },
+                    { date: '2024-03-11', amount: 170 }
+                ]
+            }
+        },
+        computed: {
+            videoEmbedUrl() {
+                if (!this.productInfo || !this.productInfo.videoUrl) return '';
+
+                let url = this.productInfo.videoUrl;
+
+                if (url.includes('bilibili.com')) {
+                    const bvMatch = url.match(/BV\w+/);
+                    if (bvMatch) {
+                        return `https://player.bilibili.com/player.html?bvid=${bvMatch[0]}&high_quality=1&danmaku=0`;
+                    }
+                }
+
+                if (url.includes('youku.com')) {
+                    const idMatch = url.match(/id_(\w+)/);
+                    if (idMatch) {
+                        return `https://player.youku.com/embed/${idMatch[1]}`;
+                    }
+                }
+
+                if (url.includes('v.qq.com')) {
+                    const vidMatch = url.match(/vid=(\w+)/);
+                    if (vidMatch) {
+                        return `https://v.qq.com/txp/iframe/player.html?vid=${vidMatch[1]}`;
+                    }
+                }
+
+                return url;
+            },
+            growthProgress() {
+                if (!this.productInfo || !this.productInfo.plantingDate || !this.productInfo.harvestDate) {
+                    return 0;
+                }
+
+                const plantDate = new Date(this.productInfo.plantingDate);
+                const harvestDate = new Date(this.productInfo.harvestDate);
+                const currentDate = new Date();
+
+                if (currentDate >= harvestDate) {
+                    return 100;
+                }
+
+                const totalDays = (harvestDate - plantDate) / (1000 * 60 * 60 * 24);
+                const passedDays = (currentDate - plantDate) / (1000 * 60 * 60 * 24);
+
+                let progress = (passedDays / totalDays) * 100;
+                return Math.min(Math.max(progress, 0), 100);
+            },
+            daysAfterHarvest() {
+                if (!this.productInfo || !this.productInfo.harvestDate) {
+                    return 0;
+                }
+
+                const harvestDate = new Date(this.productInfo.harvestDate);
+                const currentDate = new Date();
+
+                if (currentDate < harvestDate) {
+                    return 0;
+                }
+
+                const daysDiff = Math.floor((currentDate - harvestDate) / (1000 * 60 * 60 * 24));
+                return daysDiff;
+            },
+            getCurrentDatePosition() {
+                if (!this.productInfo || !this.productInfo.plantingDate || !this.productInfo.harvestDate) {
+                    return 50;
+                }
+
+                const plantDate = new Date(this.productInfo.plantingDate);
+                const harvestDate = new Date(this.productInfo.harvestDate);
+                const currentDate = new Date();
+
+                if (currentDate < plantDate) {
+                    return 0;
+                }
+
+                if (currentDate > harvestDate) {
+                    return 100;
+                }
+
+                const totalDays = (harvestDate - plantDate) / (1000 * 60 * 60 * 24);
+                const passedDays = (currentDate - plantDate) / (1000 * 60 * 60 * 24);
+                return (passedDays / totalDays) * 100;
+            }
+        },
+        methods: {
+            formatDate(dateString) {
+                if (!dateString) return '未设置';
+
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return dateString;
+
+                return date.toLocaleDateString('zh-CN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            },
+            loadProductInfo() {
+                try {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const productData = urlParams.get('data');
+
+                    if (productData) {
+                        this.productInfo = JSON.parse(decodeURIComponent(productData));
+                        console.log('加载产品数据成功:', this.productInfo);
+
+                        if (this.productInfo.plantingDate && this.productInfo.harvestDate) {
+                            const start = new Date(this.productInfo.plantingDate);
+                            const end = new Date(this.productInfo.harvestDate);
+                            const totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24));
+
+                            const fertilizerTypes = ['复合肥', '尿素', '磷肥', '有机肥', '钾肥'];
+                            const fertilizerRecords = [];
+                            const fertilizerCount = Math.floor(Math.random() * 3) + 3;
+
+                            for (let i = 0; i < fertilizerCount; i++) {
+                                const dayOffset = Math.floor(Math.random() * totalDays);
+                                const date = new Date(start.getTime() + dayOffset * 24 * 60 * 60 * 1000);
+                                fertilizerRecords.push({
+                                    date: date.toISOString().split('T')[0],
+                                    type: fertilizerTypes[Math.floor(Math.random() * fertilizerTypes.length)],
+                                    amount: Math.floor(Math.random() * 10) + 5
+                                });
+                            }
+
+                            const wateringRecords = [];
+                            const wateringCount = Math.floor(Math.random() * 4) + 3;
+
+                            for (let i = 0; i < wateringCount; i++) {
+                                const dayOffset = Math.floor(Math.random() * totalDays);
+                                const date = new Date(start.getTime() + dayOffset * 24 * 60 * 60 * 1000);
+                                wateringRecords.push({
+                                    date: date.toISOString().split('T')[0],
+                                    amount: Math.floor(Math.random() * 200) + 100
+                                });
+                            }
+
+                            fertilizerRecords.sort((a, b) => new Date(a.date) - new Date(b.date));
+                            wateringRecords.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                            this.productInfo.fertilizerRecords = fertilizerRecords;
+                            this.productInfo.wateringRecords = wateringRecords;
+                        } else {
+                            this.productInfo.fertilizerRecords = [];
+                            this.productInfo.wateringRecords = [];
                         }
+                    } else {
+                        this.productInfo = null;
+                        console.log('URL中没有产品数据');
                     }
-                    
-                    // 处理优酷视频
-                    if (url.includes('youku.com')) {
-                        const idMatch = url.match(/id_(\w+)/);
-                        if (idMatch) {
-                            return `https://player.youku.com/embed/${idMatch[1]}`;
-                        }
-                    }
-                    
-                    // 处理腾讯视频
-                    if (url.includes('v.qq.com')) {
-                        const vidMatch = url.match(/vid=(\w+)/);
-                        if (vidMatch) {
-                            return `https://v.qq.com/txp/iframe/player.html?vid=${vidMatch[1]}`;
-                        }
-                    }
-                    
-                    return url; // 如果无法处理，返回原始URL
-                },
-                growthProgress() {
-                    if (!this.productInfo || !this.productInfo.plantingDate || !this.productInfo.harvestDate) {
-                        return 0;
-                    }
-                    
-                    const plantDate = new Date(this.productInfo.plantingDate);
-                    const harvestDate = new Date(this.productInfo.harvestDate);
-                    const currentDate = new Date();
-                    
-                    // 如果当前日期已经超过收获日期，直接返回100%
-                    if (currentDate >= harvestDate) {
-                        return 100;
-                    }
-                    
-                    // 计算总天数和已经过去的天数
-                    const totalDays = (harvestDate - plantDate) / (1000 * 60 * 60 * 24);
-                    const passedDays = (currentDate - plantDate) / (1000 * 60 * 60 * 24);
-                    
-                    // 计算百分比，限制在0-100之间
-                    let progress = (passedDays / totalDays) * 100;
-                    return Math.min(Math.max(progress, 0), 100);
-                },
-                daysAfterHarvest() {
-                    if (!this.productInfo || !this.productInfo.harvestDate) {
-                        return 0;
-                    }
-                    
-                    const harvestDate = new Date(this.productInfo.harvestDate);
-                    const currentDate = new Date();
-                    
-                    // 如果当前日期在收获日期之前
-                    if (currentDate < harvestDate) {
-                        return 0;
-                    }
-                    
-                    // 计算收获后的天数
-                    const daysDiff = Math.floor((currentDate - harvestDate) / (1000 * 60 * 60 * 24));
-                    return daysDiff;
-                },
-                getCurrentDatePosition() {
-                    if (!this.productInfo || !this.productInfo.plantingDate || !this.productInfo.harvestDate) {
-                        return 50; // 默认在中间
-                    }
-                    
-                    const plantDate = new Date(this.productInfo.plantingDate);
-                    const harvestDate = new Date(this.productInfo.harvestDate);
-                    const currentDate = new Date();
-                    
-                    // 如果当前日期在种植日期之前
-                    if (currentDate < plantDate) {
-                        return 0;
-                    }
-                    
-                    // 如果当前日期在收获日期之后
-                    if (currentDate > harvestDate) {
-                        return 100;
-                    }
-                    
-                    // 计算当前日期在时间线上的百分比位置
-                    const totalDays = (harvestDate - plantDate) / (1000 * 60 * 60 * 24);
-                    const passedDays = (currentDate - plantDate) / (1000 * 60 * 60 * 24);
-                    return (passedDays / totalDays) * 100;
+                } catch (e) {
+                    console.error('解析产品数据失败:', e);
+                    this.productInfo = null;
+                } finally {
+                    this.loading = false;
                 }
             },
-            methods: {
-                formatDate(dateString) {
-                    if (!dateString) return '未设置';
-                    
-                    const date = new Date(dateString);
-                    if (isNaN(date.getTime())) return dateString;
-                    
-                    return date.toLocaleDateString('zh-CN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
+            initNutritionChart() {
+                if (!this.productInfo) return;
+
+                let nutritionData = {};
+                const nutritionLabels = ['蛋白质', '脂肪', '碳水化合物', '膳食纤维', '维生素C', '钙', '铁'];
+
+                if (this.productInfo.nutritionValues && this.productInfo.nutritionValues.length > 0) {
+                    this.productInfo.nutritionValues.forEach((value, index) => {
+                        if (index < nutritionLabels.length) {
+                            nutritionData[nutritionLabels[index]] = value;
+                        }
                     });
-                },
-                loadProductInfo() {
-                    try {
-                        // 从URL获取产品数据
-                        const urlParams = new URLSearchParams(window.location.search);
-                        const productData = urlParams.get('data');
-                        
-                        if (productData) {
-                            // 尝试解析JSON数据
-                            this.productInfo = JSON.parse(decodeURIComponent(productData));
-                            console.log('加载产品数据成功:', this.productInfo);
-                        } else {
-                            // 没有数据参数
-                            this.productInfo = null;
-                            console.log('URL中没有产品数据');
-                        }
-                    } catch (e) {
-                        console.error('解析产品数据失败:', e);
-                        this.productInfo = null;
-                    } finally {
-                        this.loading = false;
+                } else {
+                    console.log('没有可用的营养成分数据');
+                    return;
+                }
+
+                try {
+                    const ctx = document.getElementById('nutritionChart').getContext('2d');
+
+                    if (this.nutritionChart) {
+                        this.nutritionChart.destroy();
                     }
-                },
-                initNutritionChart() {
-                    if (!this.productInfo) return;
-                    
-                    // 检查是否有营养成分数据
-                    let nutritionData = {};
-                    // 固定的营养成分标签顺序
-                    const nutritionLabels = ['蛋白质', '脂肪', '碳水化合物', '膳食纤维', '维生素C', '钙', '铁'];
-                    
-                    if (this.productInfo.nutritionValues && this.productInfo.nutritionValues.length > 0) {
-                        // 使用固定顺序的标签和传入的数值数组创建营养成分数据对象
-                        this.productInfo.nutritionValues.forEach((value, index) => {
-                            if (index < nutritionLabels.length) {
-                                nutritionData[nutritionLabels[index]] = value;
-                            }
-                        });
-                    } else {
-                        console.log('没有可用的营养成分数据');
-                        return;
-                    }
-                    
-                    try {
-                        const ctx = document.getElementById('nutritionChart').getContext('2d');
-                        
-                        if (this.nutritionChart) {
-                            this.nutritionChart.destroy();
-                        }
-                        
-                        this.nutritionChart = new Chart(ctx, {
-                            type: 'bar',
-                            data: {
-                                labels: Object.keys(nutritionData),
-                                datasets: [ {
-                                    label: '营养成分含量',
-                                    data: Object.values(nutritionData),
-                                    backgroundColor: '#4CAF50',
-                                    borderColor: '#2E7D32',
-                                    borderWidth: 1
-                                } ]
-                            },
-                            options: {
-                                responsive: true,
-                                scales: {
-                                    y: {
-                                        beginAtZero: true,
-                                        title: {
-                                            display: true,
-                                            text: '含量(g/100g)  (微量元素单位为mg)'
-                                        }
+
+                    this.nutritionChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(nutritionData),
+                            datasets: [ {
+                                label: '营养成分含量',
+                                data: Object.values(nutritionData),
+                                backgroundColor: '#4CAF50',
+                                borderColor: '#2E7D32',
+                                borderWidth: 1
+                            } ]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: '含量(g/100g)  (微量元素单位为mg)'
                                     }
                                 }
                             }
-                        });
-                    } catch (error) {
-                        console.error('营养成分图表初始化失败:', error);
-                    }
-                },
-                copyProductInfoAndRedirect() {
-                    if (!this.productInfo) {
-                        alert('产品信息不可用');
-                        return;
-                    }
-                    
-                    // 生成完整的 AI 提示词
-                    const aiPrompt = this.generateAIPrompt();
-                    
-                    // 复制提示词到剪贴板
-                    navigator.clipboard.writeText(aiPrompt).then(() => {
-                        alert('已将产品信息复制到剪贴板');
-                        // 跳转到指定网址
-                        window.location.href = 'https://www.wenxiaobai.com/';
-                    }).catch(err => {
-                        console.error('复制失败:', err);
-                        alert('复制失败，请手动复制产品信息');
-                    });
-                },
-                generateAIPrompt() {
-                    const { productName, location, plantingDate, harvestDate, nutritionValues } = this.productInfo;
-                    
-                    let prompt = `产品名称: ${productName}\n` +
-                        `种植地点: ${location}\n` +
-                        `种植时间: ${this.formatDate(plantingDate)}\n` +
-                        `收获时间: ${this.formatDate(harvestDate)}\n` +
-                        `营养成分: \n`;
-
-                    const unitMap = {
-                        '蛋白质': 'g',
-                        '脂肪': 'g',
-                        '碳水化合物': 'g',
-                        '膳食纤维': 'g',
-                        '维生素C': 'mg',
-                        '钙': 'mg',
-                        '铁': 'mg'
-                    };
-                    
-                    ['蛋白质', '脂肪', '碳水化合物', '膳食纤维', '维生素C', '钙', '铁']
-                    .forEach((label, index) => {
-                        if (nutritionValues[index] !== undefined) {
-                            prompt += `  ${label}: ${nutritionValues[index]} ${unitMap[label]}/100g\n`;
                         }
                     });
-                    
-                    return prompt;
-                },
-                playVideo() {
-                    if (this.productInfo.videoUrl) {
-                        const iframe = this.$refs.videoIframe;
-                        // 触发播放
-                        // 对于B站视频，直接调用iframe的play方法可能不生效，需要发送消息
-                        if (iframe && iframe.contentWindow) {
-                            iframe.contentWindow.postMessage(JSON.stringify({
-                                "action": "play"
-                            }), '*');
-                        }
-                    }
-                },
-                openFullscreen() {
-                    const iframe = this.$refs.videoIframe;
-                    if (iframe) {
-                        if (iframe.requestFullscreen) {
-                            iframe.requestFullscreen();
-                        } else if (iframe.webkitRequestFullscreen) {
-                            iframe.webkitRequestFullscreen();
-                        } else if (iframe.msRequestFullscreen) {
-                            iframe.msRequestFullscreen();
-                        }
-                    }
-                },
-                
-                // 地图相关方法
-                initDetailMap() {
-                    if (!this.productInfo || !this.productInfo.exactLocation) return;
-                    
-                    // 初始化地图
-                    this.$nextTick(() => {
-                        if (!document.getElementById('detail-map')) return;
-                        
-                        window._AMapSecurityConfig = {
-                            securityJsCode: 'd923255fe176efb202c35546cbc00a53' // 安全密钥
-                        };
-                        
-                        AMapLoader.load({
-                            key: "5ad852daa54b2ec5cc25ea383499b9b3", // 替换为您的 key
-                            version: "2.0", // 指定要加载的 JS API 的版本
-                            plugins: ["AMap.Geocoder", "AMap.Marker"] // 需要使用的插件列表
-                        })
-                        .then(AMap => {
-                            this.detailMap = new AMap.Map('detail-map', {
-                                resizeEnable: true,
-                                center: [this.productInfo.exactLocation.longitude, this.productInfo.exactLocation.latitude],
-                                zoom: 14
-                            });
-                            
-                            // 添加标记
-                            this.detailMarker = new AMap.Marker({
-                                position: [this.productInfo.exactLocation.longitude, this.productInfo.exactLocation.latitude],
-                                map: this.detailMap,
-                                icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png"
-                            });
-                            
-                            // 添加信息窗口
-                            const infoWindow = new AMap.InfoWindow({
-                                content: `<div class="p-2">${this.productInfo.exactLocation.address}</div>`,
-                                offset: new AMap.Pixel(0, -30)
-                            });
-                            
-                            // 点击标记时打开信息窗口
-                            this.detailMarker.on('click', () => {
-                                infoWindow.open(this.detailMap, this.detailMarker.getPosition());
-                            });
-                        })
-                        .catch(e => {
-                            console.error('地图加载失败:', e);
-                        });
-                    });
-                },
-                
-                openFullMap() {
-                    if (!this.productInfo || !this.productInfo.exactLocation) return;
-                    
-                    // 打开高德地图
-                    const url = `https://uri.amap.com/marker?position=${this.productInfo.exactLocation.longitude},${this.productInfo.exactLocation.latitude}&name=${encodeURIComponent(this.productInfo.productName)}&src=myapp&coordinate=gaode&callnative=0`;
-                    window.open(url, '_blank');
+                } catch (error) {
+                    console.error('营养成分图表初始化失败:', error);
                 }
             },
-            mounted() {
-                // 页面加载完成后立即加载产品信息
-                this.loadProductInfo();
-                
-                // 初始化营养成分图表和地图
-                this.$nextTick(() => {
-                    if (this.productInfo) {
-                        console.log('初始化组件，产品信息:', this.productInfo);
-                        this.initNutritionChart();
-                        
-                        // 如果有精确位置信息，初始化地图
-                        if (this.productInfo.exactLocation) {
-                            console.log('检测到精确位置信息，初始化地图');
-                            setTimeout(() => {
-                                this.initDetailMap();
-                            }, 500); // 延迟加载地图，确保DOM已渲染
-                        } else {
-                            console.log('没有精确位置信息，跳过地图初始化');
-                        }
+            copyProductInfoAndRedirect() {
+                if (!this.productInfo) {
+                    alert('产品信息不可用');
+                    return;
+                }
+
+                const aiPrompt = this.generateAIPrompt();
+
+                navigator.clipboard.writeText(aiPrompt).then(() => {
+                    alert('已将产品信息复制到剪贴板');
+                    window.location.href = './ai.html';
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                    alert('复制失败，请手动复制产品信息');
+                });
+            },
+            generateAIPrompt() {
+                const { productName, location, plantingDate, harvestDate, nutritionValues } = this.productInfo;
+
+                let prompt = `产品名称: ${productName}\n` +
+                    `种植地点: ${location}\n` +
+                    `种植时间: ${this.formatDate(plantingDate)}\n` +
+                    `收获时间: ${this.formatDate(harvestDate)}\n` +
+                    `营养成分: \n`;
+
+                const unitMap = {
+                    '蛋白质': 'g',
+                    '脂肪': 'g',
+                    '碳水化合物': 'g',
+                    '膳食纤维': 'g',
+                    '维生素C': 'mg',
+                    '钙': 'mg',
+                    '铁': 'mg'
+                };
+
+                ['蛋白质', '脂肪', '碳水化合物', '膳食纤维', '维生素C', '钙', '铁']
+                .forEach((label, index) => {
+                    if (nutritionValues[index] !== undefined) {
+                        prompt += `  ${label}: ${nutritionValues[index]} ${unitMap[label]}/100g\n`;
                     }
                 });
+
+                return prompt;
+            },
+            playVideo() {
+                if (this.productInfo.videoUrl) {
+                    const iframe = this.$refs.videoIframe;
+                    if (iframe && iframe.contentWindow) {
+                        iframe.contentWindow.postMessage(JSON.stringify({
+                            "action": "play"
+                        }), '*');
+                    }
+                }
+            },
+            openFullscreen() {
+                const iframe = this.$refs.videoIframe;
+                if (iframe) {
+                    if (iframe.requestFullscreen) {
+                        iframe.requestFullscreen();
+                    } else if (iframe.webkitRequestFullscreen) {
+                        iframe.webkitRequestFullscreen();
+                    } else if (iframe.msRequestFullscreen) {
+                        iframe.msRequestFullscreen();
+                    }
+                }
+            },
+            initDetailMap() {
+                if (!this.productInfo || !this.productInfo.exactLocation) return;
+
+                this.$nextTick(() => {
+                    if (!document.getElementById('detail-map')) return;
+
+                    window._AMapSecurityConfig = {
+                        securityJsCode: 'd923255fe176efb202c35546cbc00a53'
+                    };
+
+                    AMapLoader.load({
+                        key: "5ad852daa54b2ec5cc25ea383499b9b3",
+                        version: "2.0",
+                        plugins: ["AMap.Geocoder", "AMap.Marker"]
+                    })
+                    .then(AMap => {
+                        this.detailMap = new AMap.Map('detail-map', {
+                            resizeEnable: true,
+                            center: [this.productInfo.exactLocation.longitude, this.productInfo.exactLocation.latitude],
+                            zoom: 14
+                        });
+
+                        this.detailMarker = new AMap.Marker({
+                            position: [this.productInfo.exactLocation.longitude, this.productInfo.exactLocation.latitude],
+                            map: this.detailMap,
+                            icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png"
+                        });
+
+                        const infoWindow = new AMap.InfoWindow({
+                            content: `<div class="p-2">${this.productInfo.exactLocation.address}</div>`,
+                            offset: new AMap.Pixel(0, -30)
+                        });
+
+                        this.detailMarker.on('click', () => {
+                            infoWindow.open(this.detailMap, this.detailMarker.getPosition());
+                        });
+                    })
+                    .catch(e => {
+                        console.error('地图加载失败:', e);
+                    });
+                });
+            },
+            openFullMap() {
+                if (!this.productInfo || !this.productInfo.exactLocation) return;
+
+                const url = `https://uri.amap.com/marker?position=${this.productInfo.exactLocation.longitude},${this.productInfo.exactLocation.latitude}&name=${encodeURIComponent(this.productInfo.productName)}&src=myapp&coordinate=gaode&callnative=0`;
+                window.open(url, '_blank');
+            },
+            initFertilizerChart() {
+                if (!this.productInfo || !this.productInfo.fertilizerRecords || !this.productInfo.fertilizerRecords.length) return;
+                const chartDom = document.getElementById('fertilizer-chart');
+                if (!chartDom) return;
+                const myChart = echarts.init(chartDom);
+                const dates = this.productInfo.fertilizerRecords.map(r => this.formatDate(r.date));
+                const amounts = this.productInfo.fertilizerRecords.map(r => r.amount);
+                myChart.setOption({
+                    title: { text: '化肥用量变化', left: 'center' },
+                    tooltip: {},
+                    xAxis: { type: 'category', data: dates },
+                    yAxis: { type: 'value', name: '用量(kg)' },
+                    series: [{ data: amounts, type: 'bar', name: '用量', color: '#FFD600' }]
+                });
+            },
+            initWateringChart() {
+                if (!this.productInfo || !this.productInfo.wateringRecords || !this.productInfo.wateringRecords.length) return;
+                const chartDom = document.getElementById('watering-chart');
+                if (!chartDom) return;
+                const myChart = echarts.init(chartDom);
+                const dates = this.productInfo.wateringRecords.map(r => this.formatDate(r.date));
+                const amounts = this.productInfo.wateringRecords.map(r => r.amount);
+                myChart.setOption({
+                    title: { text: '浇水量变化', left: 'center' },
+                    tooltip: {},
+                    xAxis: { type: 'category', data: dates },
+                    yAxis: { type: 'value', name: '用水量(L)' },
+                    series: [{ data: amounts, type: 'line', name: '用水量', color: '#2196F3' }]
+                });
             }
-        });
-    </script>
+        },
+        mounted() {
+            this.loadProductInfo();
+
+            this.$nextTick(() => {
+                if (this.productInfo) {
+                    this.initNutritionChart();
+
+                    setTimeout(() => {
+                        this.initFertilizerChart();
+                        this.initWateringChart();
+                    }, 500);
+
+                    if (this.productInfo.exactLocation) {
+                        setTimeout(() => {
+                            this.initDetailMap();
+                        }, 500);
+                    }
+                }
+            });
+        }
+    });
+</script>
 </body>
 </html>
